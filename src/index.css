@@ -1,0 +1,32 @@
+:root {
+  --app-primary: var(--mantine-primary-color-filled);
+  --app-primary-hover: var(--mantine-primary-color-filled-hover);
+  --app-primary-light: var(--mantine-primary-color-light);
+
+  --app-bg: var(--mantine-color-gray-0);
+  --app-surface: var(--mantine-color-white);
+  --app-border: var(--mantine-color-default-border);
+  --app-text: var(--mantine-color-text);
+  --app-text-dimmed: var(--mantine-color-dimmed);
+
+  --app-modal-header-bg: var(--app-primary);
+  --app-modal-header-fg: #ffffff;
+  --app-modal-body-bg: var(--app-surface);
+  --app-modal-footer-bg: var(--app-surface);
+
+  --app-table-head-bg: var(--app-bg);
+  --app-table-head-fg: var(--app-text-dimmed);
+}
+
+body {
+  background: var(--app-bg);
+  margin: 0;
+}
+
+.mantine-Table-th {
+  text-transform: uppercase;
+  font-size: var(--mantine-font-size-xs);
+  letter-spacing: 0.04em;
+  color: var(--app-table-head-fg);
+  background: var(--app-table-head-bg);
+}
