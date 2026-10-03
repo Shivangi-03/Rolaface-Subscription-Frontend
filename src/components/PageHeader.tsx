@@ -26,22 +26,6 @@ const PageHeader = ({ icon, title, subtitle }: Props) => {
           </Text>
         </div>
       </Group>
-
-      <Tabs
-        variant="pills"
-        mb="md"
-        value={pathname.startsWith("/subscriptions") ? "/subscriptions" : "/plans"}
-        onChange={(v) => v && navigate(v)}
-      >
-        <Tabs.List>
-          <Tabs.Tab value="/plans" leftSection={<IconStack2 size={16} />}>
-            Plans
-          </Tabs.Tab>
-          <Tabs.Tab value="/subscriptions" leftSection={<IconUserCheck size={16} />}>
-            Subscriptions
-          </Tabs.Tab>
-        </Tabs.List>
-      </Tabs>
     </>
   );
 };

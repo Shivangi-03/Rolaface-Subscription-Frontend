@@ -94,12 +94,12 @@ const PlanFormModal = ({ plan, onSave, onClose }: Props) => {
 
       <Grid p="lg" gutter="lg">
         <Grid.Col span={{ base: 12, md: 8 }}>
-          <ScrollArea.Autosize mah="55vh" offsetScrollbars>
+                    <ScrollArea h="55vh" offsetScrollbars>
             {tab === "basic" && <BasicInfoTab form={form} catalog={catalog} />}
             {tab === "modules" && <ModulesTab form={form} catalog={catalog} />}
             {tab === "pricing" && <PricingTab form={form} catalog={catalog} />}
             {tab === "trial" && <TrialTab form={form} />}
-          </ScrollArea.Autosize>
+                   </ScrollArea>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>
           <PlanSummary values={form.values} catalog={catalog} />

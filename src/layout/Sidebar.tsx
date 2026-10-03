@@ -1,7 +1,9 @@
 import { ActionIcon, Avatar, Box, Divider, Group, NavLink, Stack, Text, Tooltip } from "@mantine/core";
+import { useDisclosure } from "@mantine/hooks";
 import { IconLogout, IconMenu2, IconStack2, IconUsers } from "@tabler/icons-react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
+import LogoutConfirmModal from "../context/logoutConfirmModal";
 
 const iconProps = { size: 18, stroke: 1.75 };
 
@@ -20,6 +22,7 @@ const isActivePath = (pathname: string, to: string) => pathname === to || pathna
 const Sidebar = ({ open, setOpen }: SidebarProps) => {
   const { user, logout } = useAuth();
   const { pathname } = useLocation();
+  const [confirmOpen, { open: openConfirm, close: closeConfirm }] = useDisclosure(false);
 
   const username = user?.fullName || user?.username || "User";
   const initials =
@@ -117,12 +120,21 @@ const Sidebar = ({ open, setOpen }: SidebarProps) => {
           )}
 
           <Tooltip label="Logout" position="right">
-            <ActionIcon variant="subtle" color="red" size="lg" onClick={() => void logout()} aria-label="Logout">
+            <ActionIcon variant="subtle" color="red" size="lg" onClick={openConfirm} aria-label="Logout">
               <IconLogout size={16} />
             </ActionIcon>
           </Tooltip>
         </Group>
-      </Box>
+           </Box>
+
+      <LogoutConfirmModal
+        opened={confirmOpen}
+        onClose={closeConfirm}
+        onConfirm={() => {
+          closeConfirm();
+          void logout();
+        }}
+      />
     </>
   );
 };

@@ -67,12 +67,12 @@ const PlanSummary = ({ values: v, catalog = EMPTY_CATALOG }: Props) => {
             Estimated rate
           </Text>
           <Text fw={700} size="xl">
-            {formatMoney(rate, v.currency || "USD")}{" "}
+            {formatMoney(rate, v.currency )}{" "}
             <Text span size="sm" c="dimmed" fw={400}>
               {BILLING_SUFFIX[v.billingFrequency]}
             </Text>
           </Text>
-          <Text size="sm">Setup fee: {formatMoney(num(v.setupFee), v.currency || "USD")}</Text>
+          <Text size="sm">Setup fee: {formatMoney(num(v.setupFee), v.currency)}</Text>
         </div>
 
         <Group justify="space-between">
