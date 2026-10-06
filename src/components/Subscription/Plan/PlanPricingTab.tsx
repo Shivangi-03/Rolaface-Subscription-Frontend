@@ -115,7 +115,9 @@ const PricingTab = ({ form, catalog }: Props) => {
                         </Text>
                       )}
                     </div>
-                    <NumberInput w={110} min={0} decimalScale={2} aria-label={`${m.name} price`} {...form.getInputProps(`modulePrices.${m.id}`)} />
+                    <NumberInput w={110} min={0} decimalScale={2} aria-label={`${m.name} price`}value={v.modulePrices[m.id] ?? ""}
+onChange={(val) => form.setFieldValue("modulePrices", { ...v.modulePrices, [m.id]: val })}
+error={form.errors.modulePrices ? " " : undefined} />
                   </Group>
                 </Paper>
               ))}

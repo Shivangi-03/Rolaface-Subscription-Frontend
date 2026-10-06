@@ -20,29 +20,29 @@ const BasicInfoTab = ({ form, catalog }: Props) => {
       <Input.Wrapper label="Products" required error={form.errors.products}>
         <div style={{ marginTop: 4 }}>
           <CatalogGate catalog={catalog} rows={1} rowHeight={72}>
-            <SimpleGrid cols={{ base: 1, sm: Math.min(Math.max(catalog.products.length, 1), 3) }}>
+            <Group gap="xs" wrap="nowrap" align="stretch">
               {catalog.products.map((p) => {
                 const checked = form.values.products.includes(p.code);
                 return (
-                  <Checkbox.Card key={p.code} radius="md" p="sm" checked={checked} onClick={() => toggleProduct(p.code, !checked)}>
-                    <Group wrap="nowrap" align="flex-start">
+<Checkbox.Card key={p.code} radius="md" p="xs" style={{ flex: "1 1 0", minWidth: 0 }} checked={checked} onClick={() => toggleProduct(p.code, !checked)}>
+                    <Group wrap="nowrap" align="flex-start" gap="xs">
                       <Checkbox.Indicator />
                       <div>
                         <Badge variant="light" color={p.color} mb={4}>
                           {p.code}
                         </Badge>
-                        <Text size="sm">{p.name}</Text>
+                       <Text size="xs" truncate>{p.name}</Text>
                         {p.description && (
-                          <Text size="xs" c="dimmed">
-                            {p.description}
-                          </Text>
+                        <Text size="xs" c="dimmed" lineClamp={2}>
+{p.description}
+</Text>
                         )}
                       </div>
                     </Group>
                   </Checkbox.Card>
                 );
               })}
-            </SimpleGrid>
+            </Group>
           </CatalogGate>
         </div>
       </Input.Wrapper>
@@ -56,7 +56,7 @@ const BasicInfoTab = ({ form, catalog }: Props) => {
           style={{ gridColumn: "span 1" }}
           {...form.getInputProps("name")}
         />
-        <TextInput label="Plan Code" placeholder="Custom or auto-generated" maxLength={40} {...form.getInputProps("code")} />
+    <TextInput label="Plan Code" placeholder="Auto-generated" maxLength={40} disabled {...form.getInputProps("code")} />
         <NumberInput label="User Limit" placeholder="e.g. 25" min={1} allowDecimal={false} {...form.getInputProps("userLimit")} />
       </SimpleGrid>
 
@@ -68,20 +68,6 @@ const BasicInfoTab = ({ form, catalog }: Props) => {
         maxLength={500}
         {...form.getInputProps("description")}
       />
-
-      <Input.Wrapper label="Publishing Status">
-        <div>
-          <SegmentedControl
-            mt={4}
-            value={form.values.status}
-            onChange={(v) => form.setFieldValue("status", v as "draft" | "active")}
-            data={[
-              { value: "draft", label: "Draft (Hidden)" },
-              { value: "active", label: "Active (Live)" },
-            ]}
-          />
-        </div>
-      </Input.Wrapper>
     </Stack>
   );
 };

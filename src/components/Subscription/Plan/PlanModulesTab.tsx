@@ -1,4 +1,6 @@
-import { Alert, Badge, Box, Button, Checkbox, Group, Paper, Stack, Text } from "@mantine/core";
+import { useState } from "react";
+import { ActionIcon, Alert, Badge, Box, Button, Checkbox, Group, Paper, ScrollArea, Stack, Text } from "@mantine/core";
+import { IconChevronDown, IconChevronUp } from "@tabler/icons-react";
 import CatalogGate from "../Plan/Cataloggate";
 import type { PlanCatalog, PlanForm, ProductCode } from "../../../types/plan.types";
 
@@ -8,7 +10,9 @@ interface Props {
 }
 
 const ModulesTab = ({ form, catalog }: Props) => {
-  const { products, modules } = form.values;
+const { products, modules } = form.values;
+const [closed, setClosed] = useState<Record<string, boolean>>({});
+const toggleOpen = (code: string) => setClosed((c) => ({ ...c, [code]: !c[code] }));
 
   if (!products.length) {
     return <Alert color="blue">Select at least one product in Basic Information to choose modules.</Alert>;
@@ -38,7 +42,7 @@ const ModulesTab = ({ form, catalog }: Props) => {
             const active = list.filter((m) => modules.includes(m.id)).length;
             return (
               <Paper key={p.code} withBorder>
-                <Group justify="space-between" p="sm" style={{ borderBottom: "1px solid var(--mantine-color-default-border)" }}>
+              <Group justify="space-between" p="sm" onClick={() => toggleOpen(p.code)} style={{ cursor: "pointer", borderBottom: closed[p.code] ? "none" : "1px solid var(--mantine-color-default-border)" }}>
                   <Group gap="xs">
                     <Badge variant="light" color={p.color}>
                       {p.code}
@@ -49,16 +53,20 @@ const ModulesTab = ({ form, catalog }: Props) => {
                     <Text size="sm" c="dimmed">
                       {active} / {list.length} Modules Active
                     </Text>
-                    <Button size="compact-sm" variant="default" disabled={!list.length} onClick={() => setAll(p.code, true)}>
+                    <Button size="compact-sm" variant="default" disabled={!list.length} onClick={(e) => { e.stopPropagation(); setAll(p.code, true); }}>
                       Select All
                     </Button>
-                    <Button size="compact-sm" variant="default" disabled={!list.length} onClick={() => setAll(p.code, false)}>
-                      Clear All
-                    </Button>
+                  <Button size="compact-sm" variant="default" disabled={!list.length} onClick={(e) => { e.stopPropagation(); setAll(p.code, false); }}>
+                                           Clear All
+</Button>
+<ActionIcon variant="subtle" color="gray" aria-label={closed[p.code] ? "Expand modules" : "Collapse modules"}>
+{closed[p.code] ? <IconChevronDown size={18} /> : <IconChevronUp size={18} />}
+</ActionIcon>
                   </Group>
                 </Group>
 
-                {list.map((m, i) => {
+            {!closed[p.code] && (<>
+{list.map((m, i) => {
                   const subs = catalog.subModulesByModule[m.id] ?? [];
                   return (
                     <Box key={m.id} p="sm" style={i > 0 ? { borderTop: "1px solid var(--mantine-color-default-border)" } : undefined}>
@@ -76,9 +84,10 @@ const ModulesTab = ({ form, catalog }: Props) => {
                         </Text>
                       )}
                     </Box>
-                  );
+                                  );
                 })}
-              </Paper>
+</>)}
+</Paper>
             );
           })}
       </Stack>

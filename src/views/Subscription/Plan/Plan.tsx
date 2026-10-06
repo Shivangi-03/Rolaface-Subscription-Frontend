@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
-import { ActionIcon, Alert, Badge, Button, Checkbox, Group, Menu, Paper, Select, Table, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Badge, Button, Checkbox, Group, Menu, Select, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconChevronDown, IconColumns3, IconEdit, IconSearch, IconStack2 } from "@tabler/icons-react";
+import { IconChevronDown, IconColumns3, IconDots, IconEdit, IconStack2 } from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
-import ListFooter from "../../../components/ListFooter";
+import DataTable, { type Column } from "../../../components/table";
 import ProductBadges from "../../../components/ProductBadges";
 import PlanFormModal from "../../../components/Subscription/Plan/PlanModal";
 import { usePlans } from "../../../hooks/usePlans";
@@ -42,15 +42,46 @@ const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> =
   trial: (p) => <Text size="sm">{p.trialDays ? `${p.trialDays} Days` : "None"}</Text>,
   status: (p) => (
     <Badge variant="light" color={p.status === "active" ? "green" : "yellow"}>
-      {p.status === "active" ? "Active" : "Draft"}
+            {p.status === "active" ? "Active" : "Inactive"}
     </Badge>
   ),
 };
 
 const Plans = ({ embedded = false }: { embedded?: boolean }) => {
-  const { list, editing, visible, toggleColumn, openCreate, openEdit, closeModal, save } = usePlans();
+const { list, editing, visible, toggleColumn, openCreate, openEdit, closeModal, save, busyId, changeStatus, loading } = usePlans();
   const catalog = usePlanCatalog(); 
-  const columns = COLUMNS.filter((c) => visible.includes(c.key));
+  const columns: Column<Plan>[] = [
+    ...COLUMNS.filter((c) => visible.includes(c.key)).map((c) => ({
+      key: c.key,
+      header: c.label,
+      render: (p: Plan) => CELLS[c.key](p, catalog.products),
+    })),
+    {
+      key: "actions",
+      header: "Actions",
+      width: 120,
+      align: "right",
+      render: (plan: Plan) => (
+        <Group gap={4} justify="flex-end" wrap="nowrap">
+          <ActionIcon variant="subtle" loading={busyId === plan.id} onClick={() => openEdit(plan)} aria-label={`Edit ${plan.name}`}>
+            <IconEdit size={18} />
+          </ActionIcon>
+          <Menu position="bottom-end" withinPortal>
+            <Menu.Target>
+              <ActionIcon variant="subtle" color="gray" aria-label={`More actions for ${plan.name}`}>
+                <IconDots size={18} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              <Menu.Item color={plan.status === "active" ? "orange" : "green"} onClick={() => changeStatus(plan)}>
+                {plan.status === "active" ? "Set Inactive" : "Set Active"}
+              </Menu.Item>
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
+      ),
+    },
+  ];
 
   const productOptions = useMemo(
     () => [
@@ -74,17 +105,22 @@ const Plans = ({ embedded = false }: { embedded?: boolean }) => {
   <AppAlert title="Couldn't load products" message={catalog.error?.message ?? "Something went wrong."} onRetry={catalog.reload} mb="md" />
 )}
 
-      <Paper withBorder>
-        <Group p="md" justify="space-between">
-          <TextInput
-            w={{ base: "100%", sm: 320 }}
-            placeholder="Search by plan name, plan code, or module..."
-            leftSection={<IconSearch size={16} />}
-            value={list.filters.search}
-            onChange={(e) => list.setFilter({ search: e.currentTarget.value })}
-          />
-
-          <Group gap="sm">
+      <DataTable
+        columns={columns}
+        data={list.rows}
+        rowKey={(r) => r.id}
+        loading={loading}
+        height="calc(100vh - 160px)"
+        minWidth={900}
+        emptyMessage="No plans found"
+        searchValue={list.filters.search}
+        searchPlaceholder="Search by plan name, plan code, or module..."
+        onSearch={(q) => list.setFilter({ search: q })}
+        enableAdd
+        addLabel="Add Plan"
+        onAdd={openCreate}
+        filters={
+          <>
             <Select
               w={170}
               aria-label="Product"
@@ -103,10 +139,9 @@ const Plans = ({ embedded = false }: { embedded?: boolean }) => {
               data={[
                 { value: "all", label: "All Status" },
                 { value: "active", label: "Active" },
-                { value: "draft", label: "Draft" },
+                { value: "draft", label: "Inactive" },
               ]}
             />
-
             <Menu closeOnItemClick={false} position="bottom-end">
               <Menu.Target>
                 <Button variant="default" leftSection={<IconColumns3 size={16} />} rightSection={<IconChevronDown size={14} />}>
@@ -125,63 +160,22 @@ const Plans = ({ embedded = false }: { embedded?: boolean }) => {
                 ))}
               </Menu.Dropdown>
             </Menu>
-
-            <Button onClick={openCreate}>Add Plan</Button>
-            <Button
-              variant="default"
-              onClick={() => notifications.show({ title: "Export", message: "Export will be available soon" })}
-            >
-              Export
-            </Button>
-          </Group>
-        </Group>
-
-        <Table.ScrollContainer minWidth={900}>
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                {columns.map((c) => (
-                  <Table.Th key={c.key}>{c.label}</Table.Th>
-                ))}
-                <Table.Th ta="right">Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {list.rows.length === 0 ? (
-                <Table.Tr>
-                  <Table.Td colSpan={columns.length + 1}>
-                    <Text ta="center" c="dimmed" py="xl">
-                      No plans found
-                    </Text>
-                  </Table.Td>
-                </Table.Tr>
-              ) : (
-                list.rows.map((plan) => (
-                  <Table.Tr key={plan.id}>
-                    {columns.map((c) => (
-                      <Table.Td key={c.key}>{CELLS[c.key](plan, catalog.products)}</Table.Td>
-                    ))}
-                    <Table.Td ta="right">
-                      <ActionIcon variant="subtle" onClick={() => openEdit(plan)} aria-label={`Edit ${plan.name}`}>
-                        <IconEdit size={18} />
-                      </ActionIcon>
-                    </Table.Td>
-                  </Table.Tr>
-                ))
-              )}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-
-        <ListFooter
-          total={list.total}
-          page={list.page}
-          pageSize={list.pageSize}
-          onPage={list.setPage}
-          onPageSize={list.setPageSize}
-        />
-      </Paper>
-
+          </>
+        }
+        primaryAction={
+          <Button
+            variant="default"
+            onClick={() => notifications.show({ title: "Export", message: "Export will be available soon" })}
+          >
+            Export
+          </Button>
+        }
+        page={list.page}
+        pageSize={list.pageSize}
+        totalItems={list.total}
+        onPageChange={list.setPage}
+        onPageSizeChange={list.setPageSize}
+      />
       {editing && (
         <PlanFormModal
           key={editing === "new" ? "new" : editing.id}

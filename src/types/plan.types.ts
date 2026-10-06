@@ -79,3 +79,57 @@ export interface Plan {
   status: PlanStatus;
   values: PlanFormValues; 
 }
+
+export interface PlanPayload {
+  plan_name: string;
+  plan_code: string;
+  currency: string;
+  pricing_model: string;
+  billing_frequency: string;
+    modules: { module: string; price?: number }[];
+  user_limit: number;
+  description: string;
+    base_price?: number;
+  setup_fee: number;
+  trial_enabled: boolean;
+  trial_days: number;
+  renewal_mode: string;
+  billing_cycles: number;
+}
+
+export interface PlanListItem {
+  name: string;
+  plan_name: string;
+  plan_code: string;
+  status: string;
+  products: string[];
+  pricing_model: string;
+  billing_frequency: string;
+  currency: string;
+  base_price: number;
+  creation?: string;
+}
+export interface PlanDetail {
+  name: string;
+  plan_name: string;
+  plan_code: string;
+  status?: string;
+  products?: string[];
+  currency: string;
+  pricing_model: string;
+  billing_frequency: string;
+  modules?: { module: string; price?: number }[];
+  user_limit?: number;
+  description?: string;
+  base_price?: number;
+  setup_fee?: number | string;
+  trial_enabled?: boolean | number;
+  trial_days?: number;
+  renewal_mode?: string;
+  billing_cycles?: number;
+}
+export type PlanUpdatePayload = { id: string } & Partial<PlanPayload>;
+export interface PlanStatusPayload {
+  id: string;
+  status: string;
+}

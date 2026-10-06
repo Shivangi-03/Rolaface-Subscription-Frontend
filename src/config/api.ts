@@ -26,5 +26,29 @@ export const API = {
     delete: `${ERP_BASE}/api/method/custom_api.api.selling.customer.api.delete_customer`,
     updateStatus: `${ERP_BASE}/api/method/custom_api.api.selling.customer.api.update_customer_status`,
   },
+   /* =========================
+   * PLAN
+   * ========================= */
+  plans: {
+    create: `${ERP_BASE}/api/method/rolaface_subscription.modules.plan.plan.create`,
+    getAll: `${ERP_BASE}/api/method/rolaface_subscription.modules.plan.plan.get`,
+    getById:`${ERP_BASE}/api/method/rolaface_subscription.modules.plan.plan.get_by_id`,
+    update: `${ERP_BASE}/api/method/rolaface_subscription.modules.plan.plan.update`,
+    updateStatus: `${ERP_BASE}/api/method/rolaface_subscription.modules.plan.plan.update_status`
+
+  },
+   /* =========================
+   * SUBSCRIPTION
+   * ========================= */
+
+  subscriptions: {
+    getAll: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.get`,
+    create: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.create`,
+    getById: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.get_by_id`,
+    update: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.update`,
+    cancel: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.cancel`,
+  },
+
+
 
 } as const;

@@ -18,7 +18,8 @@ export const STATUS_COLOR: Record<SubscriptionStatus, string> = {
   expired: "orange",
   cancelled: "red",
 };
-
+export const statusColor = (s: string) =>
+  STATUS_COLOR[s.toLowerCase() as SubscriptionStatus] ?? "gray";
 export const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
   { value: "active", label: "Active" },

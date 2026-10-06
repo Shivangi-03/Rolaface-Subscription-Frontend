@@ -40,23 +40,12 @@ const PlanSummary = ({ values: v, catalog = EMPTY_CATALOG }: Props) => {
   return (
     <Paper withBorder style={{ overflow: "hidden" }}>
       <Box p="md" bg="var(--mantine-primary-color-filled)" c="white">
-        <Group justify="space-between" mb="xs">
-          <Badge variant="white" color="gray">
-            Summary
-          </Badge>
-          <Badge variant="light" color={v.status === "active" ? "green" : "yellow"}>
-            {v.status === "active" ? "Active" : "Draft"}
-          </Badge>
-        </Group>
         <Text fw={700} size="lg" truncate>
           {v.name.trim() || "Untitled Plan"}
         </Text>
         {v.products.length > 0 && (
           <Group gap="xs" mt={6}>
             <ProductBadges products={v.products} catalog={catalog.products} />
-            <Text size="xs" ff="monospace">
-              #{code}
-            </Text>
           </Group>
         )}
       </Box>
@@ -74,16 +63,6 @@ const PlanSummary = ({ values: v, catalog = EMPTY_CATALOG }: Props) => {
           </Text>
           <Text size="sm">Setup fee: {formatMoney(num(v.setupFee), v.currency)}</Text>
         </div>
-
-        <Group justify="space-between">
-          <Text size="sm" c="dimmed">
-            Selected products
-          </Text>
-          <Text size="sm" c="blue">
-            {v.modules.length} modules total
-          </Text>
-        </Group>
-
         {catalog.products.map((p) => {
           const { total = 0, selected = 0 } = counts[p.code] ?? {};
           const on = v.products.includes(p.code);

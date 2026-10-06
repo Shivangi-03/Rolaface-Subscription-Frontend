@@ -3,11 +3,17 @@ import type {
   ColumnKey,
   NumInput,
   Plan,
-  PlanFormValues,
+    PlanFormValues,
+  PlanDetail,
+  PlanListItem,
+  PlanPayload,
   PlanTab,
+  PlanUpdatePayload,
   PricingModel,
   ProductCode,
+  RenewalMode,
 } from "../../../types/plan.types";
+
 
 
 
@@ -100,3 +106,123 @@ export const toPlan = (id: string, values: PlanFormValues): Plan => ({
   status: values.status,
   values,
 });
+const BILLING_API: Record<BillingFrequency, string> = {
+  monthly: "Monthly",
+  quarterly: "Quarterly",
+  half_yearly: "Half Yearly",
+  yearly: "Yearly",
+};
+
+const PRICING_API: Record<PricingModel, string> = {
+  flat: "Flat",
+  per_module: "Per Module",
+};
+
+const RENEWAL_API: Record<RenewalMode, string> = {
+  fixed: "Fixed Cycles",
+  auto: "Auto-renew",
+};
+
+export const buildPlanPayload = (v: PlanFormValues): PlanPayload => ({
+  plan_name: v.name.trim(),
+  plan_code: v.code.trim() || generateCode(v.products),
+  currency: v.currency,
+  pricing_model: PRICING_API[v.pricingModel],
+  billing_frequency: BILLING_API[v.billingFrequency],
+    modules: v.modules.map((m) =>
+    v.pricingModel === "per_module"
+      ? { module: m, price: num(v.modulePrices[m] ?? 0) }
+      : { module: m },
+  ),
+  user_limit: num(v.userLimit),
+  description: v.description.trim(),
+      ...(v.pricingModel === "flat" && { base_price: num(v.basePrice) }),
+  setup_fee: num(v.setupFee),
+  trial_enabled: v.freeTrial,
+  trial_days: v.freeTrial ? num(v.trialDays) : 0,
+  renewal_mode: RENEWAL_API[v.renewalMode],
+  billing_cycles: v.renewalMode === "fixed" ? num(v.cycles) : 0,
+});
+const invert = <T extends string>(m: Record<T, string>) =>
+  Object.fromEntries(Object.entries(m).map(([k, v]) => [v, k])) as Record<string, T>;
+
+const BILLING_FROM_API = invert(BILLING_API);
+const PRICING_FROM_API = invert(PRICING_API);
+
+export const fromListItem = (r: PlanListItem): Plan => {
+  const values: PlanFormValues = {
+    ...DEFAULT_VALUES,
+    products: r.products ?? [],
+    name: r.plan_name,
+    code: r.plan_code,
+    status: r.status?.toLowerCase() === "active" ? "active" : "draft",
+    billingFrequency: BILLING_FROM_API[r.billing_frequency] ?? "monthly",
+    pricingModel: PRICING_FROM_API[r.pricing_model] ?? "flat",
+    currency: r.currency,
+    basePrice: r.base_price,
+  };
+  return { ...toPlan(r.name, values), name: r.plan_name, code: r.plan_code };
+};
+
+const RENEWAL_FROM_API = invert(RENEWAL_API);
+
+export const fromPlanDetail = (r: PlanDetail, fallbackProducts: string[] = []): Plan => {
+  const mods = r.modules ?? [];
+  const values: PlanFormValues = {
+    ...DEFAULT_VALUES,
+    products: r.products?.length ? r.products : fallbackProducts,
+    name: r.plan_name,
+    code: r.plan_code,
+    userLimit: r.user_limit || "",
+    description: r.description ?? "",
+    status: r.status?.toLowerCase() === "active" ? "active" : "draft",
+    modules: mods.map((m) => m.module),
+    billingFrequency: BILLING_FROM_API[r.billing_frequency] ?? "monthly",
+    pricingModel: PRICING_FROM_API[r.pricing_model] ?? "flat",
+    currency: r.currency,
+    basePrice: r.base_price ?? "",
+    setupFee: r.setup_fee ?? "",
+    modulePrices: Object.fromEntries(mods.map((m) => [m.module, m.price ?? 0])),
+    freeTrial: !!r.trial_enabled,
+    trialDays: r.trial_days || "",
+    renewalMode: RENEWAL_FROM_API[r.renewal_mode ?? ""] ?? "auto",
+    cycles: r.billing_cycles || "",
+  };
+  return { ...toPlan(r.name, values), name: r.plan_name, code: r.plan_code };
+};
+
+export const buildPlanUpdatePayload = (
+  id: string,
+  v: PlanFormValues,
+  init: PlanFormValues,
+): PlanUpdatePayload => {
+  const p: PlanUpdatePayload = { id };
+  const perModule = v.pricingModel === "per_module";
+  const pricingChanged = v.pricingModel !== init.pricingModel;
+
+  if (v.name.trim() !== init.name.trim()) p.plan_name = v.name.trim();
+  if (v.code.trim() !== init.code.trim()) p.plan_code = v.code.trim();
+  if (v.currency !== init.currency) p.currency = v.currency;
+  if (pricingChanged) p.pricing_model = PRICING_API[v.pricingModel];
+  if (v.billingFrequency !== init.billingFrequency) p.billing_frequency = BILLING_API[v.billingFrequency];
+  if (num(v.userLimit) !== num(init.userLimit)) p.user_limit = num(v.userLimit);
+  if (v.description.trim() !== init.description.trim()) p.description = v.description.trim();
+  if (!perModule && (pricingChanged || num(v.basePrice) !== num(init.basePrice))) p.base_price = num(v.basePrice);
+  if (num(v.setupFee) !== num(init.setupFee)) p.setup_fee = num(v.setupFee);
+  if (v.freeTrial !== init.freeTrial) p.trial_enabled = v.freeTrial;
+  if (num(v.trialDays) !== num(init.trialDays)) p.trial_days = v.freeTrial ? num(v.trialDays) : 0;
+  if (v.renewalMode !== init.renewalMode) p.renewal_mode = RENEWAL_API[v.renewalMode];
+  if (num(v.cycles) !== num(init.cycles)) p.billing_cycles = v.renewalMode === "fixed" ? num(v.cycles) : 0;
+
+  const sameModules =
+    [...v.modules].sort().join("|") === [...init.modules].sort().join("|");
+  const pricesChanged =
+    perModule && v.modules.some((m) => num(v.modulePrices[m] ?? 0) !== num(init.modulePrices[m] ?? 0));
+  if (!sameModules || pricesChanged || pricingChanged) {
+    p.modules = v.modules.map((m) =>
+      perModule ? { module: m, price: num(v.modulePrices[m] ?? 0) } : { module: m },
+    );
+  }
+
+  return p;
+};
