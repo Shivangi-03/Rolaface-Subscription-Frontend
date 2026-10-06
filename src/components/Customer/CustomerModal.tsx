@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Checkbox, Group, Input, Paper, Select, SimpleGrid, TextInput } from "@mantine/core";
+import { Box, Checkbox, Group, Input, Paper, Select, SimpleGrid, TextInput } from "@mantine/core";
 import { IconMapPin, IconUser, IconUsers, type Icon } from "@tabler/icons-react";
 import AppModal, { AppModalFooter } from "../AppModal";
 import AddressBlock from "./AddressBlock";
@@ -60,6 +60,7 @@ const CustomerModal = ({ customer, onSave, onClose }: Props) => {
         />
       }
     >
+      <Box mih={460}>
       {tab === "details" && (
         <Paper withBorder p="md">
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
@@ -100,7 +101,12 @@ const CustomerModal = ({ customer, onSave, onClose }: Props) => {
                   error={!!form.errors.mobileNumber}
                 />
               </Group>
-            </Input.Wrapper>
+                       </Input.Wrapper>
+            <TextInput
+              label="Website"
+              placeholder="https://example.com"
+              {...form.getInputProps("website")}
+            />
           </SimpleGrid>
         </Paper>
       )}
@@ -117,7 +123,8 @@ const CustomerModal = ({ customer, onSave, onClose }: Props) => {
             headerRight={<Checkbox label="Same as billing" {...form.getInputProps("sameAsBilling", { type: "checkbox" })} />}
           />
         </SimpleGrid>
-      )}
+          )}
+      </Box>
     </AppModal>
   );
 };

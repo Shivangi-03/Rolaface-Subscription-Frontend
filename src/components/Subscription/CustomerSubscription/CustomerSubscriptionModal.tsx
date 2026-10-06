@@ -1,24 +1,17 @@
 import {
   Badge, Box, Button, Divider, Grid, Group, Modal, NumberInput, Paper, ScrollArea,
-  Select, SimpleGrid, Stack, Text, TextInput, Textarea, ThemeIcon,
+   LoadingOverlay, Select, SimpleGrid, Stack, Text, TextInput, Textarea, ThemeIcon,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
 import { IconCalendar, IconLock, IconUserCheck } from "@tabler/icons-react";
 import SubscriptionSummary from "./CustomerSubscriptionSummary";
 import { useSubscriptionForm } from "../../../hooks/useSubscriptionForm";
-import { BILLING_SUFFIX, formatMoney } from "../../../views/Subscription/Plan/plan.constants";
-import type { Plan, PlanCatalog } from "../../../types/plan.types";
-import {
-  CUSTOMERS, activePlans, entitlements, findPlan, renewalText, trialText,
-} from "../../../views/Subscription/CustomerSubscription/subscription.constants";
-import type { Subscription, SubscriptionFormValues } from "../../../types/subscription.types";
+import { formatMoney } from "../../../views/Subscription/Plan/plan.constants";
+import type { CustomerOption, PlanDetail, PlanListItem, SubscriptionDetail, SubscriptionFormValues } from "../../../types/subscription.types";
 
 const DATE_DISPLAY = "DD-MMM-YYYY";
 
-type Catalog = Pick<PlanCatalog, "products" | "modules">;
-
-const EMPTY_PLANS: Plan[] = [];
-const EMPTY_CATALOG: Catalog = { products: [], modules: [] };
+const EMPTY_PLANS: PlanListItem[] = [];
 
 const Label = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
@@ -29,8 +22,9 @@ const Label = ({ label, children }: { label: string; children: React.ReactNode }
   </div>
 );
 
-const PlanDetails = ({ plan, catalog }: { plan: Plan | undefined; catalog: Catalog }) => (
-  <Paper withBorder p="md">
+const PlanDetails = ({ plan, loading }: { plan: PlanDetail | null; loading: boolean }) => (
+  <Paper withBorder p="md" pos="relative">
+    <LoadingOverlay visible={loading} />
     <Group gap="sm" mb="sm">
       <ThemeIcon variant="light" size={36} radius="md">
         <IconLock size={18} />
@@ -50,44 +44,45 @@ const PlanDetails = ({ plan, catalog }: { plan: Plan | undefined; catalog: Catal
         <SimpleGrid cols={{ base: 1, sm: 3 }}>
           <Label label="Price">
             <Text fw={700} size="lg">
-              {formatMoney(plan.price, plan.currency)}{" "}
+              {formatMoney(plan.base_price, plan.currency)}{" "}
               <Text span size="sm" c="dimmed" fw={400}>
-                {BILLING_SUFFIX[plan.billingFrequency]}
+                / {plan.billing_frequency}
               </Text>
             </Text>
           </Label>
           <Label label="Trial Period">
             <Text fw={600} c="blue">
-              {trialText(plan)}
+              {plan.trial_enabled ? `${plan.trial_days} Days Free Trial` : "No Trial"}
             </Text>
           </Label>
           <Label label="Renewal Mode">
             <Text fw={600} c="green">
-              {renewalText(plan)}
+              {plan.renewal_mode === "Auto-renew" ? "Auto-renew" : `Fixed ${plan.billing_cycles} Cycles`}
             </Text>
           </Label>
         </SimpleGrid>
 
         <div>
           <Text size="sm" fw={500} mb={6}>
-            Entitled Products & Module Counts
+            Entitled Products & Modules
           </Text>
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
-            {entitlements(plan, catalog.products, catalog.modules).map((e) => (
-              <Paper key={e.code} withBorder p="sm">
-                <Group justify="space-between" wrap="nowrap">
-                  <Group gap="xs" wrap="nowrap">
-                    <Badge variant="light" color={e.color}>
-                      {e.code}
+            {plan.products.map((code) => {
+              const mods = plan.modules.filter((m) => m.product === code);
+              return (
+                <Paper key={code} withBorder p="sm">
+                  <Group justify="space-between" wrap="nowrap" mb={4}>
+                    <Badge variant="light">{code}</Badge>
+                    <Badge variant="light" color="blue">
+                      {mods.length} Modules
                     </Badge>
-                    <Text size="sm">{e.name}</Text>
                   </Group>
-                  <Badge variant="light" color="blue">
-                    {e.selected} / {e.total} Modules
-                  </Badge>
-                </Group>
-              </Paper>
-            ))}
+                  <Text size="xs" c="dimmed">
+                    {mods.map((m) => m.module_name).join(", ")}
+                  </Text>
+                </Paper>
+              );
+            })}
           </SimpleGrid>
         </div>
       </Stack>
@@ -96,23 +91,23 @@ const PlanDetails = ({ plan, catalog }: { plan: Plan | undefined; catalog: Catal
 );
 
 interface Props {
-  subscription: Subscription | null; 
-  numbers: string[];
-  plans?: Plan[];
-  catalog?: Catalog; 
+    subscription: SubscriptionDetail | null;
+    numbers: string[];
+  customers: CustomerOption[];
+  plans?: PlanListItem[];
   onSave: (values: SubscriptionFormValues, number: string) => void;
   onClose: () => void;
 }
 
 const SubscriptionFormModal = ({
   subscription,
-  numbers,
+   numbers,
+  customers,
   plans = EMPTY_PLANS,
-  catalog = EMPTY_CATALOG,
   onSave,
   onClose,
 }: Props) => {
-  const { form, number, saving, setPlan, setStart, submit, requestClose } = useSubscriptionForm({
+    const { form, number, saving, plan, planLoading, setPlan, setStart, submit, requestClose } = useSubscriptionForm({
     subscription,
     numbers,
     onSave,
@@ -120,12 +115,14 @@ const SubscriptionFormModal = ({
   });
   const v = form.values;
 
-  const active = activePlans(plans);
-  const current = findPlan(plans, v.planId);
-  const planOptions = (current && !active.includes(current) ? [...active, current] : active).map((p) => ({
-    value: p.id,
-    label: p.name,
-  }));
+   const planOptions = plans.map((p) => ({ value: p.name, label: p.plan_name }));
+  if (subscription && !planOptions.some((o) => o.value === subscription.plan)) {
+    planOptions.push({ value: subscription.plan, label: subscription.plan_name });
+  }
+  const customerOptions = customers.map((c) => ({ value: c.id, label: `${c.name} (${c.id})` }));
+  if (subscription && !customerOptions.some((o) => o.value === subscription.customer)) {
+    customerOptions.push({ value: subscription.customer, label: `${subscription.customer_name} (${subscription.customer})` });
+  }
 
   return (
     <Modal
@@ -168,14 +165,16 @@ const SubscriptionFormModal = ({
                     required
                     searchable
                     placeholder="Select customer"
-                    data={CUSTOMERS.map((c) => ({ value: c.id, label: `${c.name} (${c.company})` }))}
+                                       data={customerOptions}
+                    disabled={!!subscription}
                     {...form.getInputProps("customerId")}
                   />
                   <Select
                     label="Choose Plan"
                     required
                     searchable
-                    placeholder="Select plan"
+                                       placeholder="Select plan"
+                    disabled={!!subscription}
                     nothingFoundMessage="No active plans found"
                     data={planOptions}
                     value={v.planId || null}
@@ -186,7 +185,7 @@ const SubscriptionFormModal = ({
                 </SimpleGrid>
               </Paper>
 
-              <PlanDetails plan={current} catalog={catalog} />
+                           <PlanDetails plan={plan} loading={planLoading} />
 
               <Paper withBorder p="md">
                 <Stack gap="md">
@@ -233,7 +232,7 @@ const SubscriptionFormModal = ({
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 4 }}>
-          <SubscriptionSummary values={v} plans={plans} />
+                   <SubscriptionSummary values={v} plan={plan} customers={customers} />
         </Grid.Col>
       </Grid>
 

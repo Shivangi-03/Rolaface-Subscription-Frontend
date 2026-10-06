@@ -1,63 +1,93 @@
 import type { ReactNode } from "react";
-import { ActionIcon, Badge, Button, Checkbox, Group, Menu, Paper, Select, Table, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Badge, Button, Checkbox, Group, Menu, Select, Text } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { IconChevronDown, IconColumns3, IconEdit, IconSearch, IconStack2 } from "@tabler/icons-react";
+import { IconBan, IconChevronDown, IconColumns3, IconDotsVertical, IconEdit, IconStack2 } from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
-import ListFooter from "../../../components/ListFooter";
-import ProductBadges from "../../../components/ProductBadges";
+import DataTable, { type Column } from "../../../components/table";
+import CancelSubscriptionModal from "../../../components/Subscription/CustomerSubscription/cancelSubscriptionModal";
 import SubscriptionFormModal from "../../../components/Subscription/CustomerSubscription/CustomerSubscriptionModal";
 import { useSubscriptions } from "../../../hooks/useSubscriptions";
 import { formatMoney } from "../../../views/Subscription/Plan/plan.constants";
-import { COLUMNS, STATUS_COLOR, STATUS_OPTIONS, findCustomer, findPlan, formatDate } from "./subscription.constants";
-import type { Subscription, SubscriptionColumnKey } from "../../../types/subscription.types";
+import { COLUMNS, STATUS_OPTIONS, formatDate, statusColor } from "./subscription.constants";
+import type { ApiSubscription, SubscriptionColumnKey } from "../../../types/subscription.types";
 
-const CELLS: Record<SubscriptionColumnKey, (s: Subscription) => ReactNode> = {
+const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = {
   number: (s) => (
     <Text size="sm" fw={600} ff="monospace">
-      {s.number}
+          {s.name}
     </Text>
   ),
-  customer: (s) => {
-    const c = findCustomer(s.values.customerId);
-    return (
-      <>
-        <Text fw={600}>{c?.name ?? "-"}</Text>
-        <Text size="xs" c="dimmed">
-          {c?.company}
-        </Text>
-      </>
-    );
-  },
-  plan: (s) => {
-    const p = findPlan(s.values.planId);
-    return (
-      <>
-        <Text size="sm" mb={4}>
-          {p?.name ?? "-"}
-        </Text>
-        {p && <ProductBadges products={p.products} />}
-      </>
-    );
-  },
-  period: (s) => (
+  customer: (s) => (
     <>
-      <Text size="sm">{formatDate(s.values.startDate)}</Text>
+      <Text fw={600}>{s.customer_name}</Text>
       <Text size="xs" c="dimmed">
-        to {formatDate(s.values.expiryDate)}
+        {s.customer}
       </Text>
     </>
   ),
-  total: (s) => <Text fw={700}>{formatMoney(s.total, findPlan(s.values.planId)?.currency ?? "USD")}</Text>,
+  plan: (s) => (
+    <>
+      <Text size="sm">{s.plan_name}</Text>
+      <Text size="xs" c="dimmed">
+        {s.billing_frequency} · {s.renewal_mode}
+      </Text>
+    </>
+  ),
+  period: (s) => (
+    <>
+      <Text size="sm">{formatDate(s.current_period_start)}</Text>
+      <Text size="xs" c="dimmed">
+        to {formatDate(s.current_period_end)}
+      </Text>
+    </>
+  ),
+  total: (s) => <Text fw={700}>{formatMoney(s.grand_total, s.currency)}</Text>,
   status: (s) => (
-    <Badge variant="light" color={STATUS_COLOR[s.status]} tt="capitalize">
+    <Badge variant="light" color={statusColor(s.status)} tt="capitalize">
       {s.status}
     </Badge>
   ),
 };
 
 const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
-  const { list, numbers, editing, visible, toggleColumn, openCreate, openEdit, closeModal, save } = useSubscriptions();
-  const columns = COLUMNS.filter((c) => visible.includes(c.key));
+  const { list, numbers, plans, customers, editing, visible, toggleColumn, openCreate, openEdit, opening, closeModal, save, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel } = useSubscriptions();
+  const columns: Column<ApiSubscription>[] = [
+    ...COLUMNS.filter((c) => visible.includes(c.key)).map((c) => ({
+      key: c.key,
+      header: c.label,
+      render: CELLS[c.key],
+    })),
+    {
+      key: "actions",
+      header: "Actions",
+      align: "right",
+      render: (s) =>
+                s.status.toLowerCase() !== "cancelled" ? (
+                      <Group gap={4} justify="flex-end" wrap="nowrap">
+            <ActionIcon
+              variant="subtle"
+              loading={opening === s.name}
+              onClick={() => openEdit(s)}
+              aria-label={`Edit ${s.name}`}
+            >
+              <IconEdit size={18} />
+            </ActionIcon>
+            <Menu position="bottom-end" withinPortal>
+              <Menu.Target>
+                <ActionIcon variant="subtle" aria-label={`More actions for ${s.name}`}>
+                  <IconDotsVertical size={18} />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item color="red" leftSection={<IconBan size={16} />} onClick={() => openCancel(s)}>
+                  Cancel
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
+        ) : null,
+    },
+  ];
 
   return (
     <>
@@ -68,18 +98,21 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
           subtitle="Manage plans, pricing schedules and module entitlements"
         />
       )}
-      
-      <Paper withBorder>
-        <Group p="md" justify="space-between">
-          <TextInput
-            w={{ base: "100%", sm: 340 }}
-            placeholder="Search by subscription no., customer, or plan..."
-            leftSection={<IconSearch size={16} />}
-            value={list.filters.search}
-            onChange={(e) => list.setFilter({ search: e.currentTarget.value })}
-          />
-
-          <Group gap="sm">
+            <DataTable<ApiSubscription>
+        columns={columns}
+        data={list.rows}
+        rowKey={(s) => s.name}
+        loading={list.loading}
+        emptyMessage="No subscriptions found"
+        height="calc(100vh - 160px)"
+        searchValue={list.filters.search}
+        searchPlaceholder="Search by subscription no., customer, or plan..."
+        onSearch={(q) => list.setFilter({ search: q })}
+        enableAdd
+        addLabel="Add Subscription"
+        onAdd={openCreate}
+        filters={
+          <>
             <Select
               w={130}
               aria-label="Status"
@@ -88,7 +121,6 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
               onChange={(v) => list.setFilter({ status: v ?? "all" })}
               data={STATUS_OPTIONS}
             />
-
             <Menu closeOnItemClick={false} position="bottom-end">
               <Menu.Target>
                 <Button variant="default" leftSection={<IconColumns3 size={16} />} rightSection={<IconChevronDown size={14} />}>
@@ -107,70 +139,38 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
                 ))}
               </Menu.Dropdown>
             </Menu>
-
-            <Button onClick={openCreate}>Add Subscription</Button>
             <Button
               variant="default"
               onClick={() => notifications.show({ title: "Export", message: "Export will be available soon" })}
             >
               Export
             </Button>
-          </Group>
-        </Group>
+          </>
+        }
+        page={list.page}
+        pageSize={list.pageSize}
+        totalItems={list.total}
+        onPageChange={list.setPage}
+        onPageSizeChange={list.setPageSize}
+      />
 
-        <Table.ScrollContainer minWidth={900}>
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                {columns.map((c) => (
-                  <Table.Th key={c.key}>{c.label}</Table.Th>
-                ))}
-                <Table.Th ta="right">Actions</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>
-              {list.rows.length === 0 ? (
-                <Table.Tr>
-                  <Table.Td colSpan={columns.length + 1}>
-                    <Text ta="center" c="dimmed" py="xl">
-                      No subscriptions found
-                    </Text>
-                  </Table.Td>
-                </Table.Tr>
-              ) : (
-                list.rows.map((s) => (
-                  <Table.Tr key={s.id}>
-                    {columns.map((c) => (
-                      <Table.Td key={c.key}>{CELLS[c.key](s)}</Table.Td>
-                    ))}
-                    <Table.Td ta="right">
-                      {s.status !== "cancelled" && (
-                        <ActionIcon variant="subtle" onClick={() => openEdit(s)} aria-label={`Edit ${s.number}`}>
-                          <IconEdit size={18} />
-                        </ActionIcon>
-                      )}
-                    </Table.Td>
-                  </Table.Tr>
-                ))
-              )}
-            </Table.Tbody>
-          </Table>
-        </Table.ScrollContainer>
-
-        <ListFooter
-          total={list.total}
-          page={list.page}
-          pageSize={list.pageSize}
-          onPage={list.setPage}
-          onPageSize={list.setPageSize}
+            {cancelTarget && (
+        <CancelSubscriptionModal
+          key={cancelTarget.name}
+          subscription={cancelTarget}
+          loading={cancelling}
+          onConfirm={confirmCancel}
+          onClose={closeCancel}
         />
-      </Paper>
+      )}
 
       {editing && (
         <SubscriptionFormModal
-          key={editing === "new" ? "new" : editing.id}
+                    key={editing === "new" ? "new" : editing.name}
           subscription={editing === "new" ? null : editing}
-          numbers={numbers}
+                   numbers={numbers}
+          plans={plans}
+          customers={customers}
           onSave={save}
           onClose={closeModal}
         />

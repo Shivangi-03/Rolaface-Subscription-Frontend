@@ -1,10 +1,7 @@
 import { Box, Divider, Group, Paper, Stack, Text } from "@mantine/core";
-import { BILLING_LABEL, BILLING_SUFFIX, formatMoney } from "../../../views/Subscription/Plan/plan.constants";
-import { GST_RATE, calcTotals, findCustomer, findPlan, formatDate, renewalText, trialText } from "../../../views/Subscription/CustomerSubscription/subscription.constants";
-import type { Plan } from "../../../types/plan.types";
-import type { SubscriptionFormValues } from "../../../types/subscription.types";
-
-const EMPTY_PLANS: Plan[] = [];
+import { formatMoney, num } from "../../../views/Subscription/Plan/plan.constants";
+import { formatDate } from "../../../views/Subscription/CustomerSubscription/subscription.constants";
+import type { CustomerOption, PlanDetail, SubscriptionFormValues } from "../../../types/subscription.types";
 
 const Row = ({ label, value }: { label: string; value: string }) => (
   <Group justify="space-between">
@@ -25,15 +22,17 @@ const Heading = ({ children }: { children: string }) => (
 
 interface Props {
   values: SubscriptionFormValues;
-  plans?: Plan[];
+plan: PlanDetail | null;
+customers: CustomerOption[];
 }
 
-const SubscriptionSummary = ({ values: v, plans = EMPTY_PLANS }: Props) => {
-  const customer = findCustomer(v.customerId);
-  const plan = findPlan(plans, v.planId);
-  const currency = plan?.currency ?? "USD";
-  const t = calcTotals(plan, v.discount);
-  const money = (n: number) => formatMoney(n, currency);
+const SubscriptionSummary = ({ values: v, plan, customers }: Props) => {
+const customer = customers.find((c) => c.id === v.customerId);
+const currency = plan?.currency ?? "USD";
+const subtotal = plan?.base_price ?? 0;
+const discount = Math.min(Math.max(num(v.discount), 0), subtotal);
+const total = subtotal - discount;
+const money = (n: number) => formatMoney(n, currency);
 
   return (
     <Paper withBorder style={{ overflow: "hidden" }}>
@@ -50,7 +49,7 @@ const SubscriptionSummary = ({ values: v, plans = EMPTY_PLANS }: Props) => {
         </div>
         <div>
           <Heading>Plan</Heading>
-          <Text fw={600}>{plan?.name ?? "Not selected"}</Text>
+          <Text fw={600}>{plan?.plan_name ?? "Not selected"}</Text>
         </div>
 
         <Divider />
@@ -58,26 +57,25 @@ const SubscriptionSummary = ({ values: v, plans = EMPTY_PLANS }: Props) => {
         <div>
           <Heading>Billing</Heading>
           <Text fw={600}>
-            {plan ? `${BILLING_LABEL[plan.billingFrequency]} • ${money(plan.price)} ${BILLING_SUFFIX[plan.billingFrequency]}` : "-"}
+           {plan ? `${plan.billing_frequency} • ${money(plan.base_price)}` : "-"}
           </Text>
         </div>
         <Row label="Start Date:" value={formatDate(v.startDate)} />
         <Row label="Expiry Date:" value={formatDate(v.expiryDate)} />
-        <Row label="Trial:" value={plan ? trialText(plan) : "-"} />
-        <Row label="Renewal:" value={plan ? renewalText(plan) : "-"} />
+      <Row label="Trial:" value={plan ? (plan.trial_enabled ? `${plan.trial_days} Days Free Trial` : "No Trial") : "-"} />
+<Row label="Renewal:" value={plan ? (plan.renewal_mode === "Auto-renew" ? "Auto-renew" : `Fixed ${plan.billing_cycles} Cycles`) : "-"} />
 
         <Divider />
 
-        <Row label="Subtotal:" value={money(t.subtotal)} />
-        <Row label="Discount:" value={money(t.discount)} />
-        <Row label={`Tax (${Math.round(GST_RATE * 100)}% GST):`} value={money(t.tax)} />
+       <Row label="Subtotal:" value={money(subtotal)} />
+<Row label="Discount:" value={money(discount)} />
 
         <Divider />
 
         <Group justify="space-between">
           <Text fw={700}>TOTAL:</Text>
           <Text fw={700} size="xl" c="blue.8">
-            {money(t.total)}
+           {money(total)}
           </Text>
         </Group>
       </Stack>

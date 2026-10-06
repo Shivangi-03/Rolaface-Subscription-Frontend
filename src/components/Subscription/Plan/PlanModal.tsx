@@ -20,16 +20,19 @@ const TAB_ICONS: Record<PlanTab, Icon> = {
 
 interface Props {
   plan: Plan | null; 
-  onSave: (values: PlanFormValues) => void;
+    onSave: (values: PlanFormValues) => void | Promise<void>;
   onClose: () => void;
 }
 
 const PlanFormModal = ({ plan, onSave, onClose }: Props) => {
   const catalog = usePlanCatalog();
+console.log("catalog status", catalog.status);
   const { form, tab, setTab, isLast, saving, next, reset, submit, requestClose } = usePlanForm({
     initial: plan?.values,
     onSave,
     onClose,
+    isEdit: !!plan,
+    planId: plan?.id,
   });
 
  
@@ -92,14 +95,14 @@ const PlanFormModal = ({ plan, onSave, onClose }: Props) => {
         </Tabs.List>
       </Tabs>
 
-      <Grid p="lg" gutter="lg">
+     <Grid p="md" gutter="md">
         <Grid.Col span={{ base: 12, md: 8 }}>
-          <ScrollArea.Autosize mah="55vh" offsetScrollbars>
+                    <ScrollArea.Autosize mah="calc(100vh - 360px)" mih={200} type="auto" offsetScrollbars>
             {tab === "basic" && <BasicInfoTab form={form} catalog={catalog} />}
             {tab === "modules" && <ModulesTab form={form} catalog={catalog} />}
             {tab === "pricing" && <PricingTab form={form} catalog={catalog} />}
             {tab === "trial" && <TrialTab form={form} />}
-          </ScrollArea.Autosize>
+                   </ScrollArea.Autosize>
         </Grid.Col>
         <Grid.Col span={{ base: 12, md: 4 }}>
           <PlanSummary values={form.values} catalog={catalog} />

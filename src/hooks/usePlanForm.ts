@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
 import { modals } from "@mantine/modals";
-import { DEFAULT_VALUES, PLAN_TABS, TAB_OF_FIELD, calcRate, num } from "../views/Subscription/Plan/plan.constants";
+import { DEFAULT_VALUES, PLAN_TABS, TAB_OF_FIELD, buildPlanPayload, buildPlanUpdatePayload, calcRate, num } from "../views/Subscription/Plan/plan.constants";
+import { createPlan, updatePlan } from "../api/planAPi";
+import { toApiError } from "../api/utils/ApiError";
+import { notifications } from "@mantine/notifications";
 import type { PlanFormValues, PlanTab } from "../types/plan.types";
 
 const validatePlan = (v: PlanFormValues) => {
@@ -20,11 +23,13 @@ const validatePlan = (v: PlanFormValues) => {
 
 interface Options {
   initial?: PlanFormValues;
-  onSave: (values: PlanFormValues) => void;
-  onClose: () => void;
+onSave: (values: PlanFormValues) => void | Promise<void>;
+onClose: () => void;
+isEdit?: boolean;
+planId?: string;
 }
 
-export function usePlanForm({ initial, onSave, onClose }: Options) {
+export function usePlanForm({ initial, onSave, onClose, isEdit = false, planId }: Options) {
   const form = useForm<PlanFormValues>({ initialValues: initial ?? DEFAULT_VALUES, validate: validatePlan });
   const [tab, setTab] = useState<PlanTab>("basic");
   const [saving, setSaving] = useState(false);
@@ -52,18 +57,30 @@ export function usePlanForm({ initial, onSave, onClose }: Options) {
     });
   };
 
-  const submit = async () => {
-    if (saving) return;
-    const result = form.validate();
+const submit = async () => {
+console.log("1 submit clicked");
+if (saving) return;
+const result = form.validate();
+console.log("2 validation errors", result.errors);
     if (result.hasErrors) {
       setTab(TAB_OF_FIELD(Object.keys(result.errors)[0]));
       return;
     }
     setSaving(true);
-    try {
-      // TODO: await createPlan / updatePlan here
-      await new Promise((r) => setTimeout(r, 400));
-      onSave(form.values);
+ try {
+if (!isEdit) {
+const payload = buildPlanPayload(form.values);
+console.log("PLAN PAYLOAD", JSON.stringify(payload, null, 2));
+await createPlan(payload);
+      }
+if (isEdit && planId) {
+  const payload = buildPlanUpdatePayload(planId, form.values, initial ?? DEFAULT_VALUES);
+  console.log("PLAN UPDATE PAYLOAD", payload);
+  if (Object.keys(payload).length > 1) await updatePlan(payload);
+}
+await onSave(form.values);
+    } catch (err) {
+notifications.show({ color: "red", title: "Couldn't save plan", message: toApiError(err).message });
     } finally {
       setSaving(false);
     }

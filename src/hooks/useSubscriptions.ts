@@ -1,57 +1,145 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useDebouncedValue } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
-import { useClientList, type ListFilters } from "../hooks/useClientList";
-import {
-  COLUMNS,
-  DUMMY_SUBSCRIPTIONS,
-  findCustomer,
-  findPlan,
-  toSubscription,
-} from "../views/Subscription/CustomerSubscription/subscription.constants";
-import type { Subscription, SubscriptionColumnKey, SubscriptionFormValues } from "../types/subscription.types";
-
-const match = (s: Subscription, f: ListFilters) => {
-  const q = f.search.trim().toLowerCase();
-  if (f.status !== "all" && s.status !== f.status) return false;
-  if (!q) return true;
-  const customer = findCustomer(s.values.customerId);
-  const plan = findPlan(s.values.planId);
-  return `${s.number} ${customer?.name ?? ""} ${customer?.company ?? ""} ${plan?.name ?? ""}`
-    .toLowerCase()
-    .includes(q);
-};
+import { cancelSubscription, getAllSubscriptions, getSubscriptionById } from "../api/Subscription/subscriptionApi";
+import { getAllPlans } from "../api/planAPi";
+import { getAllCustomers } from "../api/customerApi";
+import { COLUMNS } from "../views/Subscription/CustomerSubscription/subscription.constants";
+import type {
+    ApiSubscription,
+  CustomerOption,
+  PlanListItem,
+    SubscriptionDetail,
+  SubscriptionColumnKey,
+  SubscriptionFormValues,
+} from "../types/subscription.types";
 
 export function useSubscriptions() {
-  const [items, setItems] = useState<Subscription[]>(DUMMY_SUBSCRIPTIONS);
-  const [editing, setEditing] = useState<Subscription | "new" | null>(null);
+  const [rows, setRows] = useState<ApiSubscription[]>([]);
+const [total, setTotal] = useState(0);
+const [page, setPage] = useState(1);
+const [pageSize, setPageSize] = useState(20);
+const [filters, setFilters] = useState({ search: "", status: "all" });
+const [loading, setLoading] = useState(false);
+const [reload, setReload] = useState(0);
+const [plans, setPlans] = useState<PlanListItem[]>([]);
+const [customers, setCustomers] = useState<CustomerOption[]>([]);
+const [debouncedSearch] = useDebouncedValue(filters.search, 400);
+ const [editing, setEditing] = useState<SubscriptionDetail | "new" | null>(null);
+const [opening, setOpening] = useState<string | null>(null);
+const [cancelTarget, setCancelTarget] = useState<ApiSubscription | null>(null);
+const [cancelling, setCancelling] = useState(false);
   const [visible, setVisible] = useState<SubscriptionColumnKey[]>(COLUMNS.map((c) => c.key));
-  const list = useClientList(items, match);
+useEffect(() => {
+let cancelled = false;
+setLoading(true);
+getAllSubscriptions(
+page,
+pageSize,
+debouncedSearch.trim() || undefined,
+filters.status === "all" ? undefined : filters.status,
+    )
+    .then((res) => {
+if (cancelled) return;
+setRows(res.data);
+setTotal(res.pagination.total);
+      })
+    .catch(() => notifications.show({ color: "red", title: "Error", message: "Failed to load subscriptions" }))
+    .finally(() => {
+if (!cancelled) setLoading(false);
+      });
+return () => {
+cancelled = true;
+    };
+}, [page, pageSize, debouncedSearch, filters.status, reload]);
 
-  const toggleColumn = (key: SubscriptionColumnKey) =>
+useEffect(() => {
+getAllPlans(1, 100)
+    .then((res) => setPlans((res.data as PlanListItem[]).filter((p) => p.status === "Active")))
+    .catch(() => notifications.show({ color: "red", title: "Error", message: "Failed to load plans" }));
+getAllCustomers(1, 100)
+    .then((res) => setCustomers((res.data as CustomerOption[]).filter((c) => c.status === "Active")))
+    .catch(() => notifications.show({ color: "red", title: "Error", message: "Failed to load customers" }));
+}, []);
+
+const list = {
+rows,
+total,
+page,
+pageSize,
+filters,
+loading,
+setFilter: (patch: Partial<typeof filters>) => {
+setFilters((f) => ({ ...f, ...patch }));
+setPage(1);
+    },
+setPage,
+setPageSize: (n: number) => {
+setPageSize(n);
+setPage(1);
+    },
+  };
+
+  const confirmCancel = async (reason: string, immediate: boolean) => {
+if (!cancelTarget) return;
+setCancelling(true);
+try {
+await cancelSubscription({ id: cancelTarget.name, reason, immediate });
+notifications.show({
+color: "green",
+title: immediate ? "Subscription cancelled" : "Cancellation scheduled",
+message: cancelTarget.name,
+    });
+setCancelTarget(null);
+setReload((n) => n + 1);
+  } catch (e: any) {
+notifications.show({
+color: "red",
+title: "Error",
+message: e?.response?.data?.message ?? "Failed to cancel subscription",
+    });
+  } finally {
+setCancelling(false);
+  }
+};
+
+const toggleColumn =(key: SubscriptionColumnKey) =>
     setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
 
-  const save = (values: SubscriptionFormValues, number: string) => {
-    const existing = editing !== null && editing !== "new" ? editing : null;
-    const status = existing?.status ?? (findPlan(values.planId)?.values.freeTrial ? "trial" : "active");
-    const sub = toSubscription(existing?.id ?? `sub-${Date.now()}`, number, status, values);
 
-    setItems((prev) => (existing ? prev.map((s) => (s.id === sub.id ? sub : s)) : [sub, ...prev]));
-    setEditing(null);
-    notifications.show({
-      color: "green",
-      title: existing ? "Subscription updated" : "Subscription created",
-      message: sub.number,
-    });
+const save = (_values: SubscriptionFormValues, number: string) => {
+// TODO: call create/update subscription API here, then reload
+setEditing(null);
+setReload((n) => n + 1);
+notifications.show({ color: "green", title: "Subscription saved", message: number });
   };
 
   return {
     list,
-    numbers: items.map((s) => s.number),
+   numbers: rows.map((s) => s.name),
+plans,
+customers,
     editing,
     visible,
     toggleColumn,
     openCreate: () => setEditing("new"),
-    openEdit: (s: Subscription) => setEditing(s),
+    opening,
+cancelTarget,
+cancelling,
+openCancel: setCancelTarget,
+closeCancel: () => setCancelTarget(null),
+confirmCancel,
+openEdit: async (s: ApiSubscription) => {
+setOpening(s.name);
+try {
+const res = await getSubscriptionById(s.name);
+setEditing(res.data);
+    } catch {
+notifications.show({ color: "red", title: "Error", message: "Failed to load subscription" });
+    } finally {
+setOpening(null);
+    }
+  },
     closeModal: () => setEditing(null),
     save,
   };
