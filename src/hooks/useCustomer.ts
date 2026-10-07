@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { notifications } from "@mantine/notifications";
-import { modals } from "@mantine/modals";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
   createCustomer,
@@ -12,10 +10,7 @@ import {
 } from "../api/customerApi";
 import { buildCreatePayload, buildUpdatePayload } from "../views/Customer/customer.constants";
 import type { CustomerDetail, CustomerFormValues, CustomerSummary } from "../types/customer.types";
-import { toApiError } from "../api/utils/ApiError";
-
-const notifyError = (title: string, err: unknown) =>
-  notifications.show({ color: "red", title, message: toApiError(err).message });
+import { openCommonModal, notifyError, notifySuccess } from "../utils/Alert";
 
 export function useCustomers() {
   const [rows, setRows] = useState<CustomerSummary[]>([]);
@@ -81,7 +76,7 @@ export function useCustomers() {
       if (!detail) throw new Error("Customer not found");
       setEditing({ ...detail, id: detail.id ?? id });
     } catch (err) {
-      notifyError("Couldn't load customer", err);
+      notifyError(err, "Couldn't load customer");
     } finally {
       setBusyId(null);
     }
@@ -93,60 +88,76 @@ export function useCustomers() {
     try {
       if (current && current !== "new") {
         await updateCustomerByCustomerCode(current.id, buildUpdatePayload(values, current));
-        notifications.show({ color: "green", title: "Customer updated", message: values.name.trim() });
+        notifySuccess(`Customer ${values.name.trim()} has been updated successfully.`, "Customer Updated");
       } else {
         const res = await createCustomer(buildCreatePayload(values));
         const newId = res?.message?.data?.customerId as string | undefined;
-        notifications.show({
-          color: "green",
-          title: "Customer created",
-          message: newId ? `${values.name.trim()} (${newId})` : values.name.trim(),
-        });
+        notifySuccess(
+          newId ? `Customer ${values.name.trim()} (${newId}) has been created successfully.` : `Customer ${values.name.trim()} has been created successfully.`,
+          "Customer Created"
+        );
       }
       setEditing(null);
       reload();
     } catch (err) {
-      notifyError("Couldn't save customer", err);
+      notifyError(err, "Couldn't save customer");
       throw err;
     }
   };
 
   const toggleStatus = (row: CustomerSummary) => {
     const disabling = row.status === "Active";
-    modals.openConfirmModal({
-      title: disabling ? "Disable customer?" : "Enable customer?",
-      children: `${row.name} (${row.id}) will be ${disabling ? "disabled" : "enabled"}.`,
-      labels: { confirm: disabling ? "Disable" : "Enable", cancel: "Cancel" },
-      confirmProps: { color: disabling ? "red" : "green" },
-      onConfirm: async () => {
-        try {
-          await updateCustomerStatus(row.id, disabling ? "inactive" : "active");
-          notifications.show({ color: "green", title: disabling ? "Customer disabled" : "Customer enabled", message: row.name });
-          reload();
-        } catch (err) {
-          notifyError("Couldn't update status", err);
-        }
-      },
+    openCommonModal({
+      heading: disabling ? "Disable Customer" : "Enable Customer",
+      subtitle: "Please confirm your action.",
+      body: `${row.name} (${row.id}) will be ${disabling ? "disabled" : "enabled"}.`,
+      color: disabling ? "red" : "green",
+      buttons: [
+        { label: "Cancel", variant: "default" },
+        {
+          label: disabling ? "Disable" : "Enable",
+          color: disabling ? "red" : "green",
+          onClick: async () => {
+            try {
+              await updateCustomerStatus(row.id, disabling ? "inactive" : "active");
+              notifySuccess(
+                `${row.name} has been ${disabling ? "disabled" : "enabled"} successfully.`,
+                disabling ? "Customer Disabled" : "Customer Enabled"
+              );
+              reload();
+            } catch (err) {
+              notifyError(err, "Couldn't update status");
+            }
+          },
+        },
+      ],
     });
   };
 
   const remove = (row: CustomerSummary) => {
-    modals.openConfirmModal({
-      title: "Delete customer?",
-      children: `Delete ${row.name} (${row.id})? This cannot be undone.`,
-      labels: { confirm: "Delete", cancel: "Cancel" },
-      confirmProps: { color: "red" },
-      onConfirm: async () => {
-        try {
-          await deleteCustomerById(row.id);
-          notifications.show({ color: "green", title: "Customer deleted", message: row.name });
-          // deleted the only row on this page => go back one page
-          if (rows.length === 1 && page > 1) setPage((p) => p - 1);
-          else reload();
-        } catch (err) {
-          notifyError("Couldn't delete customer", err);
-        }
-      },
+    openCommonModal({
+      heading: "Delete Customer",
+      subtitle: "This action cannot be undone.",
+      body: `Delete ${row.name} (${row.id})? This cannot be undone.`,
+      color: "red",
+      buttons: [
+        { label: "Cancel", variant: "default" },
+        {
+          label: "Delete",
+          color: "red",
+          onClick: async () => {
+            try {
+              await deleteCustomerById(row.id);
+              notifySuccess(`Customer ${row.name} has been deleted successfully.`, "Customer Deleted");
+              // deleted the only row on this page => go back one page
+              if (rows.length === 1 && page > 1) setPage((p) => p - 1);
+              else reload();
+            } catch (err) {
+              notifyError(err, "Couldn't delete customer");
+            }
+          },
+        },
+      ],
     });
   };
 
