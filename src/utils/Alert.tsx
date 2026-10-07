@@ -1,79 +1,40 @@
 import type { ReactNode } from "react";
-import { Alert, Box, Button, Group, Text, Stack, ActionIcon, ThemeIcon } from "@mantine/core";
-import {
-  IconAlertCircle,
-  IconAlertTriangle,
-  IconAlertOctagon,
-  IconInfoCircle,
-  IconCircleCheck,
-  IconRefresh,
-  IconX,
-} from "@tabler/icons-react";
+import { Alert, Box, Button, Group, Text, Stack, ActionIcon } from "@mantine/core";
+import { IconAlertTriangle, IconCheck, IconInfoCircle, IconRefresh, IconX } from "@tabler/icons-react";
 import { modals } from "@mantine/modals";
 
 /* ==========================================================================
-   1. FRAPPE ERROR PARSER (Extracts exact dynamic Frappe server error)
+   1. FRAPPE ERROR PARSER
    ========================================================================== */
 export const parseFrappeError = (err: any): string => {
   if (!err) return "An unknown error occurred.";
   if (typeof err === "string") return err.trim();
 
   const data = err?.response?.data;
-  const cleanMessage = (msg: string) => {
-    if (!msg) return "";
-    return String(msg)
-      .replace(/<[^>]*>?/gm, "")
-      .replace(/\s+/g, " ")
-      .trim();
-  };
+  const clean = (msg: unknown) =>
+    typeof msg === "string" ? msg.replace(/<[^>]*>?/gm, "").replace(/\s+/g, " ").trim() : "";
 
-  // 1. Frappe _server_messages (JSON array of JSON string objects)
   if (data?._server_messages) {
     try {
-      const messages = JSON.parse(data._server_messages);
-      if (Array.isArray(messages) && messages.length > 0) {
-        const msgObj = typeof messages[0] === "string" ? JSON.parse(messages[0]) : messages[0];
-        if (msgObj?.message) {
-          return cleanMessage(msgObj.message);
-        }
-      }
-    } catch {
-      // ignore JSON parse error, fall through
-    }
+      const parsed = JSON.parse(data._server_messages);
+      const first = typeof parsed[0] === "string" ? JSON.parse(parsed[0]) : parsed[0];
+      if (first?.message) return clean(first.message);
+    } catch {}
   }
-
-  // 2. data.message object or string
-  if (typeof data?.message === "object" && data?.message !== null) {
-    const nested = data.message as Record<string, unknown>;
-    if (typeof nested.message === "string") {
-      return cleanMessage(nested.message);
-    }
-  }
-  if (typeof data?.message === "string" && data.message.trim()) {
-    return cleanMessage(data.message);
-  }
-
-  // 3. Frappe exception
-  if (data?.exception) {
-    const parts = String(data.exception).split(":");
-    if (parts.length > 1) {
-      return cleanMessage(parts.slice(1).join(":"));
-    }
-    return cleanMessage(data.exception);
-  }
-
-  // 4. Fallback to Axios or standard Error message
-  if (err?.message) return cleanMessage(err.message);
+  if (typeof data?.message === "object" && data?.message?.message) return clean(data.message.message);
+  if (typeof data?.message === "string" && data.message.trim()) return clean(data.message);
+  if (data?.exception) return clean(String(data.exception).split(":").pop());
+  if (err?.message) return clean(err.message);
   return "An unexpected error occurred.";
 };
 
 /* ==========================================================================
-   2.ALERT MODAL (openCommonModal)
+   2. ALERT MODAL (openCommonModal)
    ========================================================================== */
 export interface ModalButton {
   label: string;
   color?: string;
-  variant?: "filled" | "light" | "outline" | "subtle" | "default";
+  variant?: "filled" | "outline" | "default";
   onClick?: () => void;
 }
 
@@ -87,73 +48,52 @@ export interface CommonModalProps {
   onClose?: () => void;
 }
 
-// Color mapping -> uses reusable CSS variables defined in index.css
-const THEMES: Record<string, { icon: ReactNode; colorVar: string; rgbVar: string }> = {
-  red: {
-    icon: <IconAlertOctagon size={34} />,
-    colorVar: "var(--color-danger)",
-    rgbVar: "var(--color-danger-rgb)",
-  },
-  danger: {
-    icon: <IconAlertOctagon size={34} />,
-    colorVar: "var(--color-danger)",
-    rgbVar: "var(--color-danger-rgb)",
-  },
-  orange: {
-    icon: <IconAlertTriangle size={34} />,
-    colorVar: "var(--color-warning)",
-    rgbVar: "var(--color-warning-rgb)",
-  },
-  yellow: {
-    icon: <IconAlertTriangle size={34} />,
-    colorVar: "var(--color-warning)",
-    rgbVar: "var(--color-warning-rgb)",
-  },
-  warning: {
-    icon: <IconAlertTriangle size={34} />,
-    colorVar: "var(--color-warning)",
-    rgbVar: "var(--color-warning-rgb)",
-  },
-  blue: {
-    icon: <IconInfoCircle size={34} />,
-    colorVar: "var(--color-info)",
-    rgbVar: "var(--color-info-rgb)",
-  },
-  info: {
-    icon: <IconInfoCircle size={34} />,
-    colorVar: "var(--color-info)",
-    rgbVar: "var(--color-info-rgb)",
-  },
-  teal: {
-    icon: <IconCircleCheck size={34} />,
-    colorVar: "var(--color-success)",
-    rgbVar: "var(--color-success-rgb)",
-  },
-  green: {
-    icon: <IconCircleCheck size={34} />,
-    colorVar: "var(--color-success)",
-    rgbVar: "var(--color-success-rgb)",
-  },
-  success: {
-    icon: <IconCircleCheck size={34} />,
-    colorVar: "var(--color-success)",
-    rgbVar: "var(--color-success-rgb)",
-  },
-};
-const DEFAULT_THEME = {
-  icon: <IconAlertCircle size={34} />,
-  colorVar: "var(--color-neutral)",
-  rgbVar: "var(--color-neutral-rgb)",
+type ColorKey = "red" | "green" | "yellow" | "blue";
+
+const NORMALIZE_COLOR: Record<string, ColorKey> = {
+  danger: "red",
+  red: "red",
+  error: "red",
+  success: "green",
+  green: "green",
+  teal: "green",
+  warning: "yellow",
+  yellow: "yellow",
+  orange: "yellow",
+  info: "blue",
+  blue: "blue",
 };
 
-const toMantineColor = (c?: string) => {
-  if (!c) return "blue";
-  const lower = c.toLowerCase();
-  if (lower === "danger") return "red";
-  if (lower === "success") return "green";
-  if (lower === "warning") return "yellow";
-  if (lower === "info") return "blue";
-  return c;
+const THEMES: Record<ColorKey, {
+  icon: ReactNode;
+  primary: string;
+  bgTint: string;
+  shadow: string;
+}> = {
+  red: {
+    icon: <IconX size={30} color="#dc2626" stroke={2.6} />,
+    primary: "#dc2626",
+    bgTint: "#fee2e2",
+    shadow: "0 4px 14px rgba(220, 38, 38, 0.3)",
+  },
+  green: {
+    icon: <IconCheck size={32} color="#16a34a" stroke={2.8} />,
+    primary: "#16a34a",
+    bgTint: "#dcfce7",
+    shadow: "0 4px 14px rgba(22, 163, 74, 0.3)",
+  },
+  yellow: {
+    icon: <IconAlertTriangle size={30} color="#d97706" stroke={2.4} />,
+    primary: "#d97706",
+    bgTint: "#fef3c7",
+    shadow: "0 4px 14px rgba(217, 119, 6, 0.3)",
+  },
+  blue: {
+    icon: <IconInfoCircle size={30} color="#2563eb" stroke={2.4} />,
+    primary: "#2563eb",
+    bgTint: "#dbeafe",
+    shadow: "0 4px 14px rgba(37, 99, 235, 0.3)",
+  },
 };
 
 export const openCommonModal = ({
@@ -165,108 +105,180 @@ export const openCommonModal = ({
   buttons,
   onClose,
 }: CommonModalProps) => {
-  const { icon: themeIcon, colorVar, rgbVar } = THEMES[color?.toLowerCase()] ?? DEFAULT_THEME;
-  const mantineColor = toMantineColor(color);
+  const cKey = NORMALIZE_COLOR[color?.toLowerCase()] ?? "blue";
+  const theme = THEMES[cKey];
   let modalId: string;
 
   modalId = modals.open({
     centered: true,
     zIndex: 10000,
     withCloseButton: false,
-    size: "md",
-    radius: "lg",
+    size: 450,
+    radius: 26,
     padding: 0,
-    overlayProps: { backgroundOpacity: 0.55, blur: 3 },
+    overlayProps: { backgroundOpacity: 0.45, blur: 4 },
+    trapFocus: false,
+    returnFocus: false,
     styles: {
       body: { padding: 0 },
-      content: { overflow: "hidden", borderTop: `4px solid ${colorVar}` },
+      content: {
+        overflow: "hidden",
+        borderRadius: 26,
+        boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.22)",
+      },
     },
     onClose,
     children: (
-      <Stack gap={0}>
+      <Box style={{ backgroundColor: "#ffffff" }}>
+        {/* Curved Pastel Top Banner with centered circular badge */}
         <Box
-          pos="relative"
-          pt={44}
-          pb={24}
           style={{
-            background: `linear-gradient(to bottom, rgba(${rgbVar}, 0.3) 0%, rgba(${rgbVar}, 0.15) 40%, rgba(${rgbVar}, 0) 100%)`,
+            height: 110,
+            backgroundColor: theme.bgTint,
+            borderBottomLeftRadius: "50% 28px",
+            borderBottomRightRadius: "50% 28px",
+            position: "relative",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
+          {/* Top-Right "X" Cut Button */}
           <ActionIcon
             variant="subtle"
             color="gray"
             radius="xl"
+            size={28}
+            tabIndex={-1}
+            focusRing="never"
             onClick={() => {
               modals.close(modalId);
               onClose?.();
             }}
-            style={{ position: "absolute", top: 16, right: 16 }}
             aria-label="Close"
+            style={{
+              position: "absolute",
+              top: 14,
+              right: 16,
+              color: "#374151",
+            }}
           >
-            <IconX size={18} />
+            <IconX size={18} stroke={2.5} />
           </ActionIcon>
 
+          {/* Central Circular Badge with colored ring */}
           <Box
-            mx="auto"
             style={{
-              width: 84,
-              height: 84,
+              width: 66,
+              height: 66,
+              borderRadius: "50%",
+              backgroundColor: "#ffffff",
+              border: `2.5px solid ${theme.primary}`,
+              boxShadow: "0 4px 14px rgba(0, 0, 0, 0.08)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              clipPath: "polygon(25% 3%,75% 3%,100% 50%,75% 97%,25% 97%,0% 50%)",
-              background: `rgba(${rgbVar}, 0.2)`,
-              boxShadow: `0 0 32px 8px rgba(${rgbVar}, 0.25)`,
-              color: colorVar,
+              marginTop: 35,
             }}
           >
-            {icon ?? themeIcon}
+            {icon ?? theme.icon}
           </Box>
         </Box>
 
-        <Stack align="center" gap="md" px="xl" pb="xl">
-          <Stack gap={4} align="center">
-            <Text fw={700} size="xl" ta="center">{heading}</Text>
-            {subtitle && <Text size="sm" c="dimmed" ta="center">{subtitle}</Text>}
-          </Stack>
-
-          <Alert
-            color={mantineColor}
-            variant="light"
-            radius="md"
-            w="100%"
-            icon={<IconAlertCircle size={20} />}
-            styles={{
-              root: {
-                background: `rgba(${rgbVar}, 0.05)`,
-                border: `1px solid rgba(${rgbVar}, 0.15)`,
-              },
+        {/* Content Area */}
+        <Stack align="center" gap={0} px={32} pt={26} pb={26}>
+          {/* Centered Heading in Theme Color */}
+          <Text
+            fw={700}
+            ta="center"
+            style={{
+              fontSize: "1.2rem",
+              color: theme.primary,
+              lineHeight: 1.3,
             }}
           >
-            <Text size="sm">{body}</Text>
-          </Alert>
+            {heading}
+          </Text>
 
-          <Group justify="flex-end" w="100%" mt="sm">
+          {subtitle && (
+            <Text size="xs" fw={500} c="dimmed" ta="center" mt={4}>
+              {subtitle}
+            </Text>
+          )}
+
+          {/* Centered Message Body */}
+          <Box mt={8} mb={22}>
+            {typeof body === "string" ? (
+              <Text
+                size="sm"
+                ta="center"
+                style={{
+                  color: "#4b5563",
+                  lineHeight: 1.55,
+                  maxWidth: 360,
+                  wordBreak: "break-word",
+                }}
+              >
+                {body}
+              </Text>
+            ) : (
+              body
+            )}
+          </Box>
+
+          {/* Centered Action Buttons */}
+          <Group justify="center" gap="md">
             {buttons.map((btn, i) => {
-              const btnVariant = btn.variant ?? "filled";
-              const isDefaultOrOutline = btnVariant === "default" || btnVariant === "outline";
-              const btnColor = btn.color ?? color;
-              const isGreen = btnColor === "green" || btnColor === "success" || btnColor === "teal";
-              const isRed = btnColor === "red" || btnColor === "danger";
+              const isSecondary =
+                buttons.length > 1 &&
+                i === 0 &&
+                (btn.variant === "default" ||
+                  !btn.color ||
+                  btn.label.toLowerCase() === "cancel" ||
+                  btn.label.toLowerCase() === "keep editing");
+
+              const bKey = NORMALIZE_COLOR[(btn.color ?? color)?.toLowerCase()] ?? cKey;
+              const bTheme = THEMES[bKey];
+
+              if (isSecondary) {
+                return (
+                  <Button
+                    key={i}
+                    variant="default"
+                    radius="xl"
+                    size="sm"
+                    px={30}
+                    h={40}
+                    style={{
+                      fontWeight: 600,
+                      borderColor: "#d1d5db",
+                      color: "#475569",
+                      backgroundColor: "#ffffff",
+                    }}
+                    onClick={() => {
+                      modals.close(modalId);
+                      btn.onClick?.();
+                    }}
+                  >
+                    {btn.label}
+                  </Button>
+                );
+              }
 
               return (
                 <Button
                   key={i}
-                  color={toMantineColor(btnColor)}
-                  variant={btnVariant}
-                  radius="md"
-                  style={
-                    !isDefaultOrOutline && isGreen
-                      ? { backgroundColor: "var(--color-success)", color: "#ffffff" }
-                      : !isDefaultOrOutline && isRed
-                      ? { backgroundColor: "var(--color-danger)", color: "#ffffff" }
-                      : undefined
-                  }
+                  radius="xl"
+                  size="sm"
+                  px={38}
+                  h={40}
+                  style={{
+                    fontWeight: 600,
+                    backgroundColor: bTheme.primary,
+                    color: "#ffffff",
+                    border: "none",
+                    boxShadow: bTheme.shadow,
+                  }}
                   onClick={() => {
                     modals.close(modalId);
                     btn.onClick?.();
@@ -278,7 +290,7 @@ export const openCommonModal = ({
             })}
           </Group>
         </Stack>
-      </Stack>
+      </Box>
     ),
   });
 
@@ -288,46 +300,37 @@ export const openCommonModal = ({
 /* ==========================================================================
    3. NOTIFY CONVENIENCE HELPERS 
    ========================================================================== */
-export function notifySuccess(message: string, heading = "Success") {
-  return openCommonModal({
+export const notifySuccess = (message: string, heading = "Success") =>
+  openCommonModal({
     heading,
     color: "green",
-    icon: <IconCircleCheck size={36} />,
     body: message,
-    buttons: [{ label: "Ok", variant: "filled", color: "green" }],
+    buttons: [{ label: "Ok", color: "green" }],
   });
-}
 
-export function notifyError(err: unknown, heading = "Something went wrong") {
-  return openCommonModal({
+export const notifyError = (err: unknown, heading = "Action failed") =>
+  openCommonModal({
     heading,
     color: "red",
-    icon: <IconAlertOctagon size={36} />,
     body: parseFrappeError(err),
-    buttons: [{ label: "Close", variant: "filled", color: "red" }],
+    buttons: [{ label: "Close", color: "red" }],
   });
-}
 
-export function notifyValidationError(message: string, heading = "Missing information") {
-  return openCommonModal({
+export const notifyValidationError = (message: string, heading = "Missing information") =>
+  openCommonModal({
     heading,
     color: "yellow",
-    icon: <IconAlertTriangle size={36} />,
     body: message,
-    buttons: [{ label: "Close", variant: "filled", color: "yellow" }],
+    buttons: [{ label: "Close", color: "yellow" }],
   });
-}
 
-export function notifyInfo(message: string, heading = "Information") {
-  return openCommonModal({
+export const notifyInfo = (message: string, heading = "Did you know?") =>
+  openCommonModal({
     heading,
     color: "blue",
-    icon: <IconInfoCircle size={36} />,
     body: message,
-    buttons: [{ label: "Ok", variant: "filled", color: "blue" }],
+    buttons: [{ label: "Alright", color: "blue" }],
   });
-}
-
 
 /* ==========================================================================
    4. INLINE PAGE ALERT (AppAlert)
@@ -336,7 +339,6 @@ export type AppAlertVariant = "error" | "warning" | "info" | "success" | "danger
 
 interface AppAlertProps {
   variant?: AppAlertVariant;
-  /** Text is supplied by the caller (e.g. from the API response). */
   title?: string;
   message: ReactNode;
   onRetry?: () => void;
@@ -356,34 +358,27 @@ export const AppAlert = ({
   onClose,
   mb,
 }: AppAlertProps) => {
-  const { icon, colorVar, rgbVar } = THEMES[variant?.toLowerCase()] ?? DEFAULT_THEME;
-  const color = variant === "error" ? "danger" : variant;
+  const cKey = NORMALIZE_COLOR[variant?.toLowerCase()] ?? "blue";
+  const theme = THEMES[cKey];
 
   return (
     <Alert
-      role={variant === "error" || variant === "danger" || variant === "warning" ? "alert" : "status"}
+      role={cKey === "red" || cKey === "yellow" ? "alert" : "status"}
       variant="light"
-      color={toMantineColor(color)}
+      color={cKey}
       radius="md"
       mb={mb}
       withCloseButton={!!onClose}
       onClose={onClose}
-      icon={
-        <ThemeIcon variant="light" color={toMantineColor(color)} radius="xl" size={32}>
-          {icon}
-        </ThemeIcon>
-      }
+      icon={theme.icon}
       styles={{
         root: {
-          background: `rgba(${rgbVar}, 0.05)`,
-          border: `1px solid rgba(${rgbVar}, 0.15)`,
-          borderLeft: `4px solid ${colorVar}`,
-          boxShadow: "0 1px 3px rgba(15, 23, 42, 0.04)",
+          background: theme.bgTint,
+          border: `1px solid ${theme.primary}22`,
+          borderLeft: `4px solid ${theme.primary}`,
           padding: "var(--mantine-spacing-md)",
         },
-        icon: { marginInlineEnd: "var(--mantine-spacing-md)", alignSelf: "flex-start" },
-        title: { fontWeight: 700, fontSize: "var(--mantine-font-size-sm)", color: colorVar },
-        message: { fontSize: "var(--mantine-font-size-sm)" },
+        title: { fontWeight: 700, color: theme.primary },
       }}
       title={title}
     >
@@ -396,7 +391,7 @@ export const AppAlert = ({
             <Button
               size="compact-sm"
               variant="light"
-              color={color}
+              color={cKey}
               leftSection={<IconRefresh size={14} />}
               loading={retrying}
               onClick={onRetry}

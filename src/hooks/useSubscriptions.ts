@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { notifyError, notifySuccess } from "../utils/Alert";
 import { cancelSubscription, getAllSubscriptions, getSubscriptionById } from "../api/Subscription/subscriptionApi";
-import { useModalStore } from "../../src/store/modalstore";
-import { REFRESH_KEYS, useDataRefreshStore } from "../../src/store/datarefreshstore";
+import { useModalStore } from "../store/modalstore";
+import { REFRESH_KEYS, useDataRefreshStore } from "../store/datarefreshstore";
 import { COLUMNS } from "../views/Subscription/CustomerSubscription/subscription.constants";
 import type {
     ApiSubscription,
@@ -68,27 +68,24 @@ setPage(1);
   };
 
   const confirmCancel = async (reason: string, immediate: boolean) => {
-if (!cancelTarget) return;
-setCancelling(true);
-try {
-await cancelSubscription({ id: cancelTarget.name, reason, immediate });
-notifications.show({
-color: "green",
-title: immediate ? "Subscription cancelled" : "Cancellation scheduled",
-message: cancelTarget.name,
-    });
-setCancelTarget(null);
-triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST);
-  } catch (e: any) {
-notifications.show({
-color: "red",
-title: "Error",
-message: e?.response?.data?.message ?? "Failed to cancel subscription",
-    });
-  } finally {
-setCancelling(false);
-  }
-};
+    if (!cancelTarget) return;
+    setCancelling(true);
+    try {
+      await cancelSubscription({ id: cancelTarget.name, reason, immediate });
+      notifySuccess(
+        immediate
+          ? `Subscription ${cancelTarget.name} has been cancelled.`
+          : `Cancellation for subscription ${cancelTarget.name} has been scheduled.`,
+        immediate ? "Subscription Cancelled" : "Cancellation Scheduled"
+      );
+      setCancelTarget(null);
+      triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST);
+    } catch (e: any) {
+      notifyError(e, "Failed to cancel subscription");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   const toggleColumn =(key: SubscriptionColumnKey) =>
     setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
@@ -97,30 +94,30 @@ setCancelling(false);
 
     visible,
     toggleColumn,
-   openCreate: () => openModal({ type: "subscription", id: "subscription-new", title: "Add Subscription" }),
+    openCreate: () => openModal({ type: "subscription", id: "subscription-new", title: "Add Subscription" }),
     opening,
-cancelTarget,
-cancelling,
-openCancel: setCancelTarget,
-closeCancel: () => setCancelTarget(null),
-confirmCancel,
-openEdit: async (s: ApiSubscription) => {
-setOpening(s.name);
-try {
-const res = await getSubscriptionById(s.name);
-openModal({
-id: `subscription-${res.data.name}`,
-type: "subscription",
-title: `Edit ${res.data.name}`,
-initialData: res.data,
-isEdit: true,
-    });
-    } catch {
-notifications.show({ color: "red", title: "Error", message: "Failed to load subscription" });
-    } finally {
-setOpening(null);
-    }
-  },
+    cancelTarget,
+    cancelling,
+    openCancel: setCancelTarget,
+    closeCancel: () => setCancelTarget(null),
+    confirmCancel,
+    openEdit: async (s: ApiSubscription) => {
+      setOpening(s.name);
+      try {
+        const res = await getSubscriptionById(s.name);
+        openModal({
+          id: `subscription-${res.data.name}`,
+          type: "subscription",
+          title: `Edit ${res.data.name}`,
+          initialData: res.data,
+          isEdit: true,
+        });
+      } catch (err) {
+        notifyError(err, "Failed to load subscription");
+      } finally {
+        setOpening(null);
+      }
+    },
     
   };
 }
