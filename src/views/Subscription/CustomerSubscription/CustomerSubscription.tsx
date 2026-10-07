@@ -116,14 +116,6 @@ const { list, visible, toggleColumn, openCreate, openEdit, opening, cancelTarget
         onAdd={openCreate}
         filters={
           <>
-            <Select
-              w={130}
-              aria-label="Status"
-              allowDeselect={false}
-              value={list.filters.status}
-              onChange={(v) => list.setFilter({ status: v ?? "all" })}
-              data={STATUS_OPTIONS}
-            />
             <Menu closeOnItemClick={false} position="bottom-end">
               <Menu.Target>
                 <Button variant="default" leftSection={<IconColumns3 size={16} />} rightSection={<IconChevronDown size={14} />}>

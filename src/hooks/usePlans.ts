@@ -6,17 +6,9 @@ import { useModalStore } from "../store/modalstore";
 import { REFRESH_KEYS, useDataRefreshStore } from "../store/datarefreshstore";
 import type { ColumnKey, Plan, PlanDetail, PlanListItem } from "../types/plan.types";
 import { getAllPlans, getPlanById, updatePlanStatus } from "../api/planAPi";
+import { useDebouncedValue } from "@mantine/hooks";
 
-const match = (p: Plan, f: ListFilters) => {
-  const q = f.search.trim().toLowerCase();
-  const moduleNames = q ? p.values.modules.join(" ") : "";
-  return (
-    (f.status === "all" || p.status === f.status) &&
-    (f.product === "all" || p.products.includes(f.product as Plan["products"][number])) &&
-    (!q || `${p.name} ${p.code} ${moduleNames}`.toLowerCase().includes(q))
-  );
-};
-
+const match = (_p: Plan, _f: ListFilters) => true;
 export function usePlans() {
   const [plans, setPlans] = useState<Plan[]>([]);
 const [loading, setLoading] = useState(true);
@@ -25,11 +17,13 @@ const [busyId, setBusyId] = useState<string | null>(null);
 const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 const refreshTick = useDataRefreshStore((s) => s.ticks[REFRESH_KEYS.PLAN_LIST] ?? 0);
 const openModal = useModalStore((s) => s.openModal);
+const list = useClientList(plans, match);
+const [search] = useDebouncedValue(list.filters.search.trim(), 400);
 
 useEffect(() => {
   let cancelled = false;
   setLoading(true);
-  getAllPlans(1, 20)
+getAllPlans(1, 20, search)
     .then((res) => {
       if (cancelled) return;
       if (!Array.isArray(res?.data)) throw new Error("Unexpected response format from server");
@@ -46,9 +40,8 @@ useEffect(() => {
   return () => {
     cancelled = true;
   };
-}, [reloadKey, refreshTick]);
+}, [reloadKey, refreshTick, search]);
   const [visible, setVisible] = useState<ColumnKey[]>(COLUMNS.map((c) => c.key));
-  const list = useClientList(plans, match);
 
 const openEdit = async (p: Plan) => {
   if (busyId) return;

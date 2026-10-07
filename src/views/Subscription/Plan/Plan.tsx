@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+
 import type { ReactNode } from "react";
 import { ActionIcon, Badge, Button, Checkbox, Group, Menu, Select, Text } from "@mantine/core";
 import { IconChevronDown, IconColumns3, IconDots, IconEdit, IconStack2 } from "@tabler/icons-react";
@@ -81,13 +81,6 @@ const { list, visible, toggleColumn, openCreate, openEdit, busyId, changeStatus,
     },
   ];
 
-  const productOptions = useMemo(
-    () => [
-      { value: "all", label: "All Products" },
-      ...catalog.products.map((p) => ({ value: p.code, label: p.name || p.code })),
-    ],
-    [catalog.products],
-  );
 
   return (
     <>
@@ -119,27 +112,6 @@ const { list, visible, toggleColumn, openCreate, openEdit, busyId, changeStatus,
         onAdd={openCreate}
         filters={
           <>
-            <Select
-              w={170}
-              aria-label="Product"
-              allowDeselect={false}
-              value={list.filters.product}
-              onChange={(v) => list.setFilter({ product: v ?? "all" })}
-              data={productOptions}
-              disabled={catalog.status === "loading"}
-            />
-            <Select
-              w={120}
-              aria-label="Status"
-              allowDeselect={false}
-              value={list.filters.status}
-              onChange={(v) => list.setFilter({ status: v ?? "all" })}
-              data={[
-                { value: "all", label: "All Status" },
-                { value: "active", label: "Active" },
-                { value: "draft", label: "Inactive" },
-              ]}
-            />
             <Menu closeOnItemClick={false} position="bottom-end">
               <Menu.Target>
                 <Button variant="default" leftSection={<IconColumns3 size={16} />} rightSection={<IconChevronDown size={14} />}>
