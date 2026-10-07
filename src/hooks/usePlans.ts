@@ -68,22 +68,22 @@ const changeStatus = (p: Plan) => {
   if (busyId) return;
   const activating = p.status !== "active";
   openCommonModal({
-    heading: activating ? "Activate Plan" : "Deactivate Plan",
+    heading: activating ? "Activate Plan" : "Inactive Plan",
     subtitle: "Please confirm your action.",
-    body: `Plan "${p.name}" will be ${activating ? "activated" : "deactivated"}.`,
+    body: `Plan "${p.name}" will be ${activating ? "activated" : "Inactived"}.`,
     color: activating ? "green" : "red",
     buttons: [
       { label: "Cancel", variant: "default" },
       {
-        label: activating ? "Activate" : "Deactivate",
+        label: activating ? "Activate" : "Inactive",
         color: activating ? "green" : "red",
         onClick: async () => {
           setBusyId(p.id);
           try {
             await updatePlanStatus({ id: p.id, status: activating ? "Active" : "Inactive" });
             notifySuccess(
-              `Plan "${p.name}" has been ${activating ? "activated" : "deactivated"} successfully.`,
-              activating ? "Plan Activated" : "Plan Deactivated"
+              `Plan "${p.name}" has been ${activating ? "activated" : "Inactived"} successfully.`,
+              activating ? "Plan Activated" : "Plan Inactived"
             );
             reload();
           } catch (err) {
