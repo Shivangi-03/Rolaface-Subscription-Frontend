@@ -63,6 +63,7 @@ export interface SubscriptionPayload {
   customer: string;
   plan: string;
   start_date: string;
+  end_date: string; 
   billing_frequency: string;
   discount_amount: number;
   notes?: string;
@@ -117,6 +118,7 @@ export interface SubscriptionUpdatePayload {
   customer?: string;
   plan?: string;
   start_date?: string;
+  end_date?: string;
   billing_frequency?: string;
   discount_amount?: number;
   notes?: string;

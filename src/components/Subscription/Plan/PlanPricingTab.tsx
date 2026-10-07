@@ -77,6 +77,7 @@ const PricingTab = ({ form, catalog }: Props) => {
           filter={({ options }) => options}
           onSearchChange={currency.setSearch}
           {...withSelectOnFocus(form.getInputProps("currency"))}
+          value={v.currency || null}
         />
         <NumberInput
           label="Base Price"
@@ -94,7 +95,7 @@ const PricingTab = ({ form, catalog }: Props) => {
           <Group justify="space-between">
             <Text fw={600}>Module Pricing Allocation</Text>
             <Text size="sm" c="blue">
-              Total: {formatMoney(calcRate(v), v.currency || "USD")}
+              Total: {formatMoney(calcRate(v), v.currency)}
             </Text>
           </Group>
           {form.errors.modulePrices && (
@@ -110,34 +111,37 @@ const PricingTab = ({ form, catalog }: Props) => {
               </Text>
             )}
             <SimpleGrid cols={{ base: 1, sm: 2 }}>
-              {selected.map((m) => (
-                <Paper key={m.id} withBorder p="sm">
-                  <Group justify="space-between" wrap="nowrap">
-                    <div>
-                      <Text size="sm" fw={500}>
-                        {m.name}{" "}
-                        <Text span size="xs" c="dimmed">
-                          ({productName(m.product)})
+              {selected.map((m) => {
+                const subCount = catalog.subModulesByModule[m.id]?.length ?? 0;
+                return (
+                  <Paper key={m.id} withBorder p="sm">
+                    <Group justify="space-between" wrap="nowrap">
+                      <div>
+                        <Text size="sm" fw={500}>
+                          {m.name}{" "}
+                          <Text span size="xs" c="dimmed">
+                            ({productName(m.product)})
+                          </Text>
                         </Text>
-                      </Text>
-                      {(catalog.subModulesByModule[m.id]?.length ?? 0) > 0 && (
-                        <Text size="xs" c="dimmed">
-                          {catalog.subModulesByModule[m.id].length} sub-modules bundled
-                        </Text>
-                      )}
-                    </div>
-                    <NumberInput
-                      w={110}
-                      min={0}
-                      decimalScale={2}
-                      aria-label={`${m.name} price`}
-                      value={v.modulePrices[m.id] ?? ""}
-                      onChange={(val) => form.setFieldValue("modulePrices", { ...v.modulePrices, [m.id]: val })}
-                      error={form.errors.modulePrices ? " " : undefined}
-                    />
-                  </Group>
-                </Paper>
-              ))}
+                        {subCount > 0 && (
+                          <Text size="xs" c="dimmed">
+                            {subCount} sub-modules bundled
+                          </Text>
+                        )}
+                      </div>
+                      <NumberInput
+                        w={110}
+                        min={0}
+                        decimalScale={2}
+                        aria-label={`${m.name} price`}
+                        value={v.modulePrices[m.id] ?? ""}
+                        onChange={(val) => form.setFieldValue("modulePrices", { ...v.modulePrices, [m.id]: val })}
+                        error={form.errors.modulePrices ? " " : undefined}
+                      />
+                    </Group>
+                  </Paper>
+                );
+              })}
             </SimpleGrid>
           </CatalogGate>
         </Stack>

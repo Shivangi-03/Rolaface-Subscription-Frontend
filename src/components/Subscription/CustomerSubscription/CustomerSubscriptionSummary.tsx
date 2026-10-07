@@ -28,11 +28,10 @@ customers: CustomerOption[];
 
 const SubscriptionSummary = ({ values: v, plan, customers }: Props) => {
 const customer = customers.find((c) => c.id === v.customerId);
-const currency = plan?.currency ?? "USD";
 const subtotal = plan?.base_price ?? 0;
 const discount = Math.min(Math.max(num(v.discount), 0), subtotal);
 const total = subtotal - discount;
-const money = (n: number) => formatMoney(n, currency);
+const money = (n: number) => formatMoney(n, plan?.currency);
 
   return (
     <Paper withBorder style={{ overflow: "hidden" }}>

@@ -85,9 +85,10 @@ export const calcRate = (v: PlanFormValues) =>
 export const generateCode = (products: ProductCode[]) =>
   products.length ? `${products.join("-")}-${new Date().getFullYear()}` : "";
 
-export const formatMoney = (amount: number, currency: string) => {
+export const formatMoney = (amount: number, currency?: string) => {
+  if (!currency) return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(amount);
   try {
-    return new Intl.NumberFormat("en-US", { style: "currency", currency, maximumFractionDigits: 2 }).format(amount);
+    return new Intl.NumberFormat(undefined, { style: "currency", currency, maximumFractionDigits: 2 }).format(amount);
   } catch {
     return `${currency} ${amount}`;
   }
