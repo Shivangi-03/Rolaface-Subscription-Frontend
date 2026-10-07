@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { useForm } from "@mantine/form";
-import { openCommonModal, notifyError } from "../utils/Alert";
+import { openCommonModal, notifyError, notifySuccess } from "../utils/Alert";
 import { getPlanById } from "../api/planAPi";
 import { createSubscription, updateSubscription } from "../api/Subscription/subscriptionApi";
 import { num } from "../views/Subscription/Plan/plan.constants";
@@ -122,10 +122,10 @@ if (date && plan) form.setFieldValue("expiryDate", addPeriod(date, toFrequency(p
   };
 
 const done = (message: string) => {
-useDataRefreshStore.getState().triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST);
-notifications.show({ color: "green", title: "Subscription saved", message });
-onClose();
-  };
+  useDataRefreshStore.getState().triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST);
+  notifySuccess(`Subscription ${message} has been saved successfully.`, "Subscription Saved");
+  onClose();
+};
 
 const submit = async () => {
     if (saving) return;

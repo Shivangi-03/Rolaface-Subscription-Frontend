@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
-import { openCommonModal, notifyError } from "../utils/Alert";
+import { openCommonModal, notifyError, notifySuccess } from "../utils/Alert";
 import { DEFAULT_VALUES, PLAN_TABS, TAB_OF_FIELD, buildPlanPayload, buildPlanUpdatePayload, calcRate, num } from "../views/Subscription/Plan/plan.constants";
 import { createPlan, updatePlan } from "../api/planAPi";
-import { toApiError } from "../api/utils/ApiError";
-import { REFRESH_KEYS, useDataRefreshStore } from "../../src/store/datarefreshstore";
-import { notifications } from "@mantine/notifications";
+import { REFRESH_KEYS, useDataRefreshStore } from "../store/datarefreshstore";
 import type { PlanFormValues, PlanTab } from "../types/plan.types";
 
 const validatePlan = (v: PlanFormValues) => {
@@ -83,7 +81,10 @@ if (isEdit && planId) {
   if (Object.keys(payload).length > 1) await updatePlan(payload);
 }
 useDataRefreshStore.getState().triggerRefresh(REFRESH_KEYS.PLAN_LIST);
-notifications.show({ color: "green", title: isEdit ? "Plan updated" : "Plan created", message: form.values.name });
+notifySuccess(
+  isEdit ? `Plan "${form.values.name.trim()}" has been updated successfully.` : `Plan "${form.values.name.trim()}" has been created successfully.`,
+  isEdit ? "Plan Updated" : "Plan Created"
+);
 onClose();
     } catch (err) {
       notifyError(err, "Couldn't save plan");
