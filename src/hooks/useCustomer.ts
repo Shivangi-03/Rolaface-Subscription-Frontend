@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import {
-  createCustomer,
   deleteCustomerById,
   getAllCustomers,
   getCustomerByCustomerCode,
-  updateCustomerByCustomerCode,
   updateCustomerStatus,
 } from "../api/customerApi";
-import { buildCreatePayload, buildUpdatePayload } from "../views/Customer/customer.constants";
-import type { CustomerDetail, CustomerFormValues, CustomerSummary } from "../types/customer.types";
+import { useModalStore } from "../../src/store/modalstore";
+import { REFRESH_KEYS, useDataRefreshStore } from "../store/datarefreshstore";
+import type { CustomerDetail, CustomerSummary } from "../types/customer.types";
 import { openCommonModal, notifyError, notifySuccess, parseFrappeError } from "../utils/Alert";
 
 export function useCustomers() {
@@ -22,8 +21,9 @@ export function useCustomers() {
   const [search, setSearchState] = useState("");
   const [debouncedSearch] = useDebouncedValue(search.trim(), 400);
   const [reloadKey, setReloadKey] = useState(0);
+  const refreshTick = useDataRefreshStore((s) => s.ticks[REFRESH_KEYS.CUSTOMER_LIST] ?? 0);
+  const openModal = useModalStore((s) => s.openModal);
 
-  const [editing, setEditing] = useState<CustomerDetail | "new" | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const latestRequest = useRef(0);
@@ -51,7 +51,7 @@ export function useCustomers() {
       .finally(() => {
         if (requestId === latestRequest.current) setLoading(false);
       });
-  }, [page, pageSize, debouncedSearch, reloadKey]);
+  }, [page, pageSize, debouncedSearch, reloadKey, refreshTick]);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
 
@@ -64,8 +64,7 @@ export function useCustomers() {
     setPage(1);
   };
 
-  const openCreate = () => setEditing("new");
-  const closeModal = () => setEditing(null);
+  const openCreate = () => openModal({ type: "customer", id: "customer-new", title: "Add Customer" });
 
   const openEdit = async (id: string) => {
     if (busyId) return;
@@ -74,34 +73,17 @@ export function useCustomers() {
       const res = await getCustomerByCustomerCode(id);
       const detail = (res?.message?.data ?? res?.data) as CustomerDetail | undefined;
       if (!detail) throw new Error("Customer not found");
-      setEditing({ ...detail, id: detail.id ?? id });
+          openModal({
+        id: `customer-${id}`,
+        type: "customer",
+        title: `Edit ${id}`,
+        initialData: { ...detail, id: detail.id ?? id },
+        isEdit: true,
+      });
     } catch (err) {
       notifyError(err, "Couldn't load customer");
     } finally {
       setBusyId(null);
-    }
-  };
-
-  // Throws on failure so the modal stays open with the user's data.
-  const save = async (values: CustomerFormValues) => {
-    const current = editing;
-    try {
-      if (current && current !== "new") {
-        await updateCustomerByCustomerCode(current.id, buildUpdatePayload(values, current));
-        notifySuccess(`Customer ${values.name.trim()} has been updated successfully.`, "Customer Updated");
-      } else {
-        const res = await createCustomer(buildCreatePayload(values));
-        const newId = res?.message?.data?.customerId as string | undefined;
-        notifySuccess(
-          newId ? `Customer ${values.name.trim()} (${newId}) has been created successfully.` : `Customer ${values.name.trim()} has been created successfully.`,
-          "Customer Created"
-        );
-      }
-      setEditing(null);
-      reload();
-    } catch (err) {
-      notifyError(err, "Couldn't save customer");
-      throw err;
     }
   };
 
@@ -170,15 +152,12 @@ export function useCustomers() {
     totalItems,
     search,
     busyId,
-    editing,
     setSearch,
     setPage,
     setPageSize,
     reload,
     openCreate,
     openEdit,
-    closeModal,
-    save,
     toggleStatus,
     remove,
   };

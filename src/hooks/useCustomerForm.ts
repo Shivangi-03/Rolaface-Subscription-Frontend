@@ -1,17 +1,25 @@
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
-import { openCommonModal } from "../utils/Alert";
-import { TAB_OF_FIELD, CUSTOMER_TABS, defaultValues, validateCustomer } from "../views/Customer/customer.constants";
-import type { CustomerFormValues, CustomerTab } from "../types/customer.types";
+import { createCustomer, updateCustomerByCustomerCode } from "../api/customerApi";
+import { notifyError, notifySuccess, openCommonModal } from "../utils/Alert";
+import { REFRESH_KEYS, useDataRefreshStore } from "../../src/store/datarefreshstore";
+import {
+  TAB_OF_FIELD,
+  CUSTOMER_TABS,
+  buildCreatePayload,
+  buildUpdatePayload,
+  defaultValues,
+  validateCustomer,
+} from "../views/Customer/customer.constants";
+import type { CustomerDetail, CustomerFormValues, CustomerTab } from "../types/customer.types";
 
 interface Options {
   initial?: CustomerFormValues;
-  /** Should throw on failure (parent already shows the error); modal then stays open. */
-  onSave: (values: CustomerFormValues) => Promise<void>;
+customer?: CustomerDetail | null;
   onClose: () => void;
 }
 
-export function useCustomerForm({ initial, onSave, onClose }: Options) {
+export function useCustomerForm({ initial, customer, onClose }: Options) {
   const form = useForm<CustomerFormValues>({ initialValues: initial ?? defaultValues(), validate: validateCustomer });
   const [tab, setTab] = useState<CustomerTab>("details");
   const [saving, setSaving] = useState(false);
@@ -53,9 +61,24 @@ export function useCustomerForm({ initial, onSave, onClose }: Options) {
     }
     setSaving(true);
     try {
-      await onSave(form.values);
-    } catch {
-      // error already shown by the parent; keep the modal open so nothing is lost
+      const v = form.values;
+if (customer) {
+await updateCustomerByCustomerCode(customer.id, buildUpdatePayload(v, customer));
+notifySuccess(`Customer ${v.name.trim()} has been updated successfully.`, "Customer Updated");
+    } else {
+const res = await createCustomer(buildCreatePayload(v));
+const newId = res?.message?.data?.customerId as string | undefined;
+notifySuccess(
+newId
+? `Customer ${v.name.trim()} (${newId}) has been created successfully.`
+: `Customer ${v.name.trim()} has been created successfully.`,
+"Customer Created",
+      );
+    }
+useDataRefreshStore.getState().triggerRefresh(REFRESH_KEYS.CUSTOMER_LIST);
+onClose();
+    } catch (err) {
+notifyError(err, "Couldn't save customer"); 
     } finally {
       setSaving(false);
     }

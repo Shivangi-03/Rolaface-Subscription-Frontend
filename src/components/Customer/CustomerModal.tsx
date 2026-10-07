@@ -4,9 +4,10 @@ import { IconMapPin, IconUser, IconUsers, type Icon } from "@tabler/icons-react"
 import AppModal, { AppModalFooter } from "../AppModal";
 import AddressBlock from "./AddressBlock";
 import { useCustomerForm } from "../../hooks/useCustomerForm";
+import { useModalStore } from "../../store/modalstore";
 import { useCurrencySelect, withSelectOnFocus } from "../../hooks/uselookupoptions";
 import { CUSTOMER_TABS, mapDetailToForm, sanitizeCode, sanitizeDigits } from "../../views/Customer/customer.constants";
-import type { CustomerDetail, CustomerFormValues, CustomerTab } from "../../types/customer.types";
+import type { CustomerDetail, CustomerTab } from "../../types/customer.types";
 
 const TAB_ICONS: Record<CustomerTab, Icon> = {
   details: IconUser,
@@ -19,19 +20,21 @@ const TABS = CUSTOMER_TABS.map((t) => {
 });
 
 interface Props {
-  customer: CustomerDetail | null; // null = create
-  onSave: (values: CustomerFormValues) => Promise<void>;
+  modalId: string;
+  customer: CustomerDetail | null; 
   onClose: () => void;
 }
 
-const CustomerModal = ({ customer, onSave, onClose }: Props) => {
+const CustomerModal = ({ customer, modalId, onClose }: Props) => {
   const initial = useMemo(() => (customer ? mapDetailToForm(customer) : undefined), [customer]);
   const { form, tab, setTab, isLast, saving, next, reset, submit, requestClose } = useCustomerForm({
-    initial,
-    onSave,
+        initial,
+    customer,
     onClose,
   });
   const v = form.values;
+  const minimized = useModalStore((s) => s.modals.find((m) => m.id === modalId)?.minimized ?? false);
+  const minimizeModal = useModalStore((s) => s.minimizeModal);
 
   const currency = useCurrencySelect(v.currency);
 
@@ -41,7 +44,9 @@ const CustomerModal = ({ customer, onSave, onClose }: Props) => {
       icon={<IconUsers size={22} />}
       title={customer ? "Edit Customer" : "Add Customer"}
       subtitle={customer ? "Edit and manage customer information" : "Fill in the details to add a new customer"}
-      onClose={requestClose}
+         onClose={requestClose}
+      opened={!minimized}
+      onMinimize={() => minimizeModal(modalId)}
       tabs={TABS}
       activeTab={tab}
       onTabChange={setTab}

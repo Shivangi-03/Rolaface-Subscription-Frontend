@@ -2,7 +2,8 @@ import { create } from "zustand";
 
 export const REFRESH_KEYS = {
     SUBSCRIPTION_LIST: "subscription_list",
-  PLAN_LIST: "plan_list",
+   PLAN_LIST: "plan_list",
+  CUSTOMER_LIST: "customer_list",
 } as const;
 
 interface DataRefreshState {

@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Box, Button, Group, Modal, ScrollArea, Tabs, Text, ThemeIcon } from "@mantine/core";
+import { ActionIcon, Box, Button, Group, Modal, ScrollArea, Tabs, Text, ThemeIcon } from "@mantine/core";
+import { IconMinus } from "@tabler/icons-react";
 import type { BoxProps, ModalProps } from "@mantine/core";
 
 /* ───────────────────────── Tabs ───────────────────────── */
@@ -77,7 +78,9 @@ export interface AppModalProps<T extends string = string> {
   /** icon shown in the header badge, e.g. <IconUsers size={22} /> */
   icon?: ReactNode;
   /** called for X button / Esc. Pass your "unsaved changes" guard here. */
-  onClose: () => void;
+   onClose: () => void;
+  /** shows a minimize button in the header when passed */
+  onMinimize?: () => void;
   /** modals in this app are mounted conditionally, so default is true */
   opened?: boolean;
   /** "md" | "xl" | "60rem" | 900 ... default "70rem" */
@@ -108,6 +111,7 @@ const AppModal = <T extends string = string>({
   subtitle,
   icon,
   onClose,
+  onMinimize,
   opened = true,
   size = "70rem",
   fullScreen,
@@ -141,7 +145,7 @@ const AppModal = <T extends string = string>({
       body: { background: "var(--app-modal-body-bg)" },
     }}
     title={
-      <Group gap="sm" wrap="nowrap">
+      <Group gap="sm" wrap="nowrap" w="100%">
         {icon && (
           <ThemeIcon size={40} variant="white" color="gray" radius="md">
             {icon}
@@ -156,7 +160,12 @@ const AppModal = <T extends string = string>({
               {subtitle}
             </Text>
           )}
-        </div>
+       </div>
+        {onMinimize && (
+          <ActionIcon variant="subtle" ml="auto" c="var(--app-modal-header-fg)" aria-label="Minimize" onClick={onMinimize}>
+            <IconMinus size={18} />
+          </ActionIcon>
+        )}
       </Group>
     }
   >
