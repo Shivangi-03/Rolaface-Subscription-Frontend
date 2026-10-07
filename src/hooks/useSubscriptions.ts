@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
-import { notifications } from "@mantine/notifications";
+import { notifyError, notifySuccess } from "../utils/Alert";
 import { cancelSubscription, getAllSubscriptions, getSubscriptionById } from "../api/Subscription/subscriptionApi";
 import { getAllPlans } from "../api/planAPi";
 import { getAllCustomers } from "../api/customerApi";
@@ -44,7 +44,7 @@ if (cancelled) return;
 setRows(res.data);
 setTotal(res.pagination.total);
       })
-    .catch(() => notifications.show({ color: "red", title: "Error", message: "Failed to load subscriptions" }))
+    .catch((err) => notifyError(err, "Failed to load subscriptions"))
     .finally(() => {
 if (!cancelled) setLoading(false);
       });
@@ -56,10 +56,10 @@ cancelled = true;
 useEffect(() => {
 getAllPlans(1, 100)
     .then((res) => setPlans((res.data as PlanListItem[]).filter((p) => p.status === "Active")))
-    .catch(() => notifications.show({ color: "red", title: "Error", message: "Failed to load plans" }));
+    .catch((err) => notifyError(err, "Failed to load plans"));
 getAllCustomers(1, 100)
     .then((res) => setCustomers((res.data as CustomerOption[]).filter((c) => c.status === "Active")))
-    .catch(() => notifications.show({ color: "red", title: "Error", message: "Failed to load customers" }));
+    .catch((err) => notifyError(err, "Failed to load customers"));
 }, []);
 
 const list = {
@@ -81,65 +81,60 @@ setPage(1);
   };
 
   const confirmCancel = async (reason: string, immediate: boolean) => {
-if (!cancelTarget) return;
-setCancelling(true);
-try {
-await cancelSubscription({ id: cancelTarget.name, reason, immediate });
-notifications.show({
-color: "green",
-title: immediate ? "Subscription cancelled" : "Cancellation scheduled",
-message: cancelTarget.name,
-    });
-setCancelTarget(null);
-setReload((n) => n + 1);
-  } catch (e: any) {
-notifications.show({
-color: "red",
-title: "Error",
-message: e?.response?.data?.message ?? "Failed to cancel subscription",
-    });
-  } finally {
-setCancelling(false);
-  }
-};
+    if (!cancelTarget) return;
+    setCancelling(true);
+    try {
+      await cancelSubscription({ id: cancelTarget.name, reason, immediate });
+      notifySuccess(
+        immediate
+          ? `Subscription ${cancelTarget.name} has been cancelled.`
+          : `Cancellation for subscription ${cancelTarget.name} has been scheduled.`,
+        immediate ? "Subscription Cancelled" : "Cancellation Scheduled"
+      );
+      setCancelTarget(null);
+      setReload((n) => n + 1);
+    } catch (e: any) {
+      notifyError(e, "Failed to cancel subscription");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
-const toggleColumn =(key: SubscriptionColumnKey) =>
+  const toggleColumn =(key: SubscriptionColumnKey) =>
     setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
 
-
-const save = (_values: SubscriptionFormValues, number: string) => {
-// TODO: call create/update subscription API here, then reload
-setEditing(null);
-setReload((n) => n + 1);
-notifications.show({ color: "green", title: "Subscription saved", message: number });
+  const save = (_values: SubscriptionFormValues, number: string) => {
+    setEditing(null);
+    setReload((n) => n + 1);
+    notifySuccess(`Subscription ${number} has been saved successfully.`, "Subscription Saved");
   };
 
   return {
     list,
-   numbers: rows.map((s) => s.name),
-plans,
-customers,
+    numbers: rows.map((s) => s.name),
+    plans,
+    customers,
     editing,
     visible,
     toggleColumn,
     openCreate: () => setEditing("new"),
     opening,
-cancelTarget,
-cancelling,
-openCancel: setCancelTarget,
-closeCancel: () => setCancelTarget(null),
-confirmCancel,
-openEdit: async (s: ApiSubscription) => {
-setOpening(s.name);
-try {
-const res = await getSubscriptionById(s.name);
-setEditing(res.data);
-    } catch {
-notifications.show({ color: "red", title: "Error", message: "Failed to load subscription" });
-    } finally {
-setOpening(null);
-    }
-  },
+    cancelTarget,
+    cancelling,
+    openCancel: setCancelTarget,
+    closeCancel: () => setCancelTarget(null),
+    confirmCancel,
+    openEdit: async (s: ApiSubscription) => {
+      setOpening(s.name);
+      try {
+        const res = await getSubscriptionById(s.name);
+        setEditing(res.data);
+      } catch (err) {
+        notifyError(err, "Failed to load subscription");
+      } finally {
+        setOpening(null);
+      }
+    },
     closeModal: () => setEditing(null),
     save,
   };

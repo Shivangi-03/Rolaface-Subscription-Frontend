@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { notifications } from "@mantine/notifications";
+import { openCommonModal, notifyError, notifySuccess } from "../utils/Alert";
 import { useClientList, type ListFilters } from "./useClientList";
 import { COLUMNS, fromListItem, fromPlanDetail } from "../views/Subscription/Plan/plan.constants";
 import type { ColumnKey, Plan, PlanDetail, PlanFormValues, PlanListItem } from "../types/plan.types";
 import { getAllPlans, getPlanById, updatePlanStatus } from "../api/planAPi";
-import { toApiError } from "../api/utils/ApiError";
 
 const match = (p: Plan, f: ListFilters) => {
   const q = f.search.trim().toLowerCase();
@@ -35,7 +34,7 @@ useEffect(() => {
     .catch((err) => {
       if (cancelled) return;
       setPlans([]);
-      notifications.show({ color: "red", title: "Couldn't load plans", message: toApiError(err).message });
+      notifyError(err, "Couldn't load plans");
     })
     .finally(() => {
       if (!cancelled) setLoading(false);
@@ -57,25 +56,43 @@ const openEdit = async (p: Plan) => {
     if (!detail || Array.isArray(detail)) throw new Error("Plan not found");
     setEditing({ ...fromPlanDetail(detail, p.products), id: p.id });
   } catch (err) {
-    notifications.show({ color: "red", title: "Couldn't load plan", message: toApiError(err).message });
+    notifyError(err, "Couldn't load plan");
   } finally {
     setBusyId(null);
   }
 };
 
-const changeStatus = async (p: Plan) => {
+const changeStatus = (p: Plan) => {
   if (busyId) return;
   const activating = p.status !== "active";
-  setBusyId(p.id);
-  try {
-    await updatePlanStatus({ id: p.id, status: activating ? "Active" : "Inactive" });
-    notifications.show({ color: "green", title: activating ? "Plan activated" : "Plan deactivated", message: p.name });
-    reload();
-  } catch (err) {
-    notifications.show({ color: "red", title: "Couldn't update status", message: toApiError(err).message });
-  } finally {
-    setBusyId(null);
-  }
+  openCommonModal({
+    heading: activating ? "Activate Plan" : "Deactivate Plan",
+    subtitle: "Please confirm your action.",
+    body: `Plan "${p.name}" will be ${activating ? "activated" : "deactivated"}.`,
+    color: activating ? "green" : "red",
+    buttons: [
+      { label: "Cancel", variant: "default" },
+      {
+        label: activating ? "Activate" : "Deactivate",
+        color: activating ? "green" : "red",
+        onClick: async () => {
+          setBusyId(p.id);
+          try {
+            await updatePlanStatus({ id: p.id, status: activating ? "Active" : "Inactive" });
+            notifySuccess(
+              `Plan "${p.name}" has been ${activating ? "activated" : "deactivated"} successfully.`,
+              activating ? "Plan Activated" : "Plan Deactivated"
+            );
+            reload();
+          } catch (err) {
+            notifyError(err, "Couldn't update status");
+          } finally {
+            setBusyId(null);
+          }
+        },
+      },
+    ],
+  });
 };
 
 const toggleColumn = (key: ColumnKey) =>
@@ -84,11 +101,10 @@ const toggleColumn = (key: ColumnKey) =>
  const save = (values: PlanFormValues) => {
   const isEdit = editing !== null && editing !== "new";
   setEditing(null);
-  notifications.show({
-    color: "green",
-    title: isEdit ? "Plan updated" : "Plan created",
-    message: values.name.trim(),
-  });
+  notifySuccess(
+    isEdit ? `Plan "${values.name.trim()}" has been updated successfully.` : `Plan "${values.name.trim()}" has been created successfully.`,
+    isEdit ? "Plan Updated" : "Plan Created"
+  );
   reload();
 };
 return {

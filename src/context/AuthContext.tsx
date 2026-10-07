@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
-import { notifications } from "@mantine/notifications";
+import { notifyError } from "../utils/Alert";
 import { fetchLoginUser, loginApi, logoutApi } from "../api/authApi";
 import { onSessionExpired } from "../utils/SessionEvent";
 import { AuthContext, type AuthUser } from "./auth-context";
@@ -23,7 +23,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () =>
       onSessionExpired(() => {
         setUser(null);
-        notifications.show({ color: "red", title: "Session expired", message: "Please login again" });
+        notifyError("Please login again", "Session expired");
       }),
     [],
   );

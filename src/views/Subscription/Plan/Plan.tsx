@@ -1,7 +1,6 @@
 import { useMemo } from "react";
 import type { ReactNode } from "react";
 import { ActionIcon, Badge, Button, Checkbox, Group, Menu, Select, Text } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import { IconChevronDown, IconColumns3, IconDots, IconEdit, IconStack2 } from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
@@ -11,7 +10,7 @@ import { usePlans } from "../../../hooks/usePlans";
 import { usePlanCatalog } from "../../../hooks/usePlanCatalog";
 import { BILLING_LABEL, BILLING_SUFFIX, COLUMNS, PRICING_LABEL, formatMoney } from "./plan.constants";
 import type { ColumnKey, Plan, ProductDef } from "../../../types/plan.types";
-import AppAlert from "../../../utils/Alert";
+import AppAlert, { notifyInfo } from "../../../utils/Alert";
 
 const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> = {
   name: (p) => (
@@ -165,7 +164,7 @@ const { list, editing, visible, toggleColumn, openCreate, openEdit, closeModal, 
         primaryAction={
           <Button
             variant="default"
-            onClick={() => notifications.show({ title: "Export", message: "Export will be available soon" })}
+            onClick={() => notifyInfo("Export will be available soon", "Export")}
           >
             Export
           </Button>

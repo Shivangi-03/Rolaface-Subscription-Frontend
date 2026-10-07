@@ -10,7 +10,7 @@ import {
 } from "../api/customerApi";
 import { buildCreatePayload, buildUpdatePayload } from "../views/Customer/customer.constants";
 import type { CustomerDetail, CustomerFormValues, CustomerSummary } from "../types/customer.types";
-import { openCommonModal, notifyError, notifySuccess } from "../utils/Alert";
+import { openCommonModal, notifyError, notifySuccess, parseFrappeError } from "../utils/Alert";
 
 export function useCustomers() {
   const [rows, setRows] = useState<CustomerSummary[]>([]);
@@ -46,7 +46,7 @@ export function useCustomers() {
         if (requestId !== latestRequest.current) return;
         setRows([]);
         setTotalItems(0);
-        setError(toApiError(err).message);
+        setError(parseFrappeError(err));
       })
       .finally(() => {
         if (requestId === latestRequest.current) setLoading(false);
