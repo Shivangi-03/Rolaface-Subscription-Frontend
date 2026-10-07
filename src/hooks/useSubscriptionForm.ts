@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import dayjs from "dayjs";
 import { useForm } from "@mantine/form";
-import { modals } from "@mantine/modals";
-import { notifications } from "@mantine/notifications";
+import { openCommonModal, notifyError } from "../utils/Alert";
 import { getPlanById } from "../api/planAPi";
 import { createSubscription, updateSubscription } from "../api/Subscription/subscriptionApi";
 import { num } from "../views/Subscription/Plan/plan.constants";
@@ -94,9 +93,9 @@ setPlanDetail(detail);
 if (form.values.startDate) {
 form.setFieldValue("expiryDate", addPeriod(form.values.startDate, toFrequency(detail.billing_frequency)));
       }
-    } catch {
-form.setFieldValue("planId", "");
-notifications.show({ color: "red", title: "Error", message: "Failed to load plan" });
+    } catch (err) {
+      form.setFieldValue("planId", "");
+      notifyError(err, "Failed to load plan");
     } finally {
 setPlanLoading(false);
     }
@@ -110,12 +109,15 @@ if (date && plan) form.setFieldValue("expiryDate", addPeriod(date, toFrequency(p
   const requestClose = () => {
     if (saving) return;
     if (!form.isDirty()) return onClose();
-    modals.openConfirmModal({
-      title: "Discard changes?",
-      children: "You have unsaved changes. If you close now, they will be lost.",
-      labels: { confirm: "Discard", cancel: "Keep editing" },
-      confirmProps: { color: "red" },
-      onConfirm: onClose,
+    openCommonModal({
+      heading: "Discard Changes",
+      subtitle: "You have unsaved changes.",
+      body: "If you close now, your unsaved changes will be lost.",
+      color: "red",
+      buttons: [
+        { label: "Keep editing", variant: "default" },
+        { label: "Discard", color: "red", onClick: onClose },
+      ],
     });
   };
 
@@ -135,34 +137,26 @@ try {
 await updateSubscription({ id: subscription.name, ...changes });
 onSave(v, subscription.name);
     } catch (e: any) {
-notifications.show({
-color: "red",
-title: "Error",
-message: e?.response?.data?.message ?? "Failed to update subscription",
-      });
+      notifyError(e, "Failed to update subscription");
     } finally {
-setSaving(false);
+      setSaving(false);
     }
-return;
+    return;
   }
-setSaving(true);
+  setSaving(true);
     try {
      const v = form.values;
-const resp = await createSubscription({
-customer: v.customerId,
-plan: v.planId,
-start_date: dayjs(v.startDate).format("YYYY-MM-DD"),
-billing_frequency: plan?.billing_frequency ?? "",
-discount_amount: num(v.discount),
-...(v.notes && { notes: v.notes }),
-    });
-onSave(v, resp?.data?.name ?? number);
-    } catch (e: any) {
-notifications.show({
-color: "red",
-title: "Error",
-message: e?.response?.data?.message ?? "Failed to create subscription",
+      const resp = await createSubscription({
+        customer: v.customerId,
+        plan: v.planId,
+        start_date: dayjs(v.startDate).format("YYYY-MM-DD"),
+        billing_frequency: plan?.billing_frequency ?? "",
+        discount_amount: num(v.discount),
+        ...(v.notes && { notes: v.notes }),
       });
+      onSave(v, resp?.data?.name ?? number);
+    } catch (e: any) {
+      notifyError(e, "Failed to create subscription");
     } finally {
       setSaving(false);
     }

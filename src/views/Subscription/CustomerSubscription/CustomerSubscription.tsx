@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { ActionIcon, Badge, Button, Checkbox, Group, Menu, Select, Text } from "@mantine/core";
-import { notifications } from "@mantine/notifications";
 import { IconBan, IconChevronDown, IconColumns3, IconDotsVertical, IconEdit, IconStack2 } from "@tabler/icons-react";
+import { notifyInfo } from "../../../utils/Alert";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import CancelSubscriptionModal from "../../../components/Subscription/CustomerSubscription/cancelSubscriptionModal";
@@ -141,7 +141,7 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
             </Menu>
             <Button
               variant="default"
-              onClick={() => notifications.show({ title: "Export", message: "Export will be available soon" })}
+              onClick={() => notifyInfo("Export will be available soon", "Export")}
             >
               Export
             </Button>

@@ -1,10 +1,8 @@
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
-import { modals } from "@mantine/modals";
+import { openCommonModal, notifyError } from "../utils/Alert";
 import { DEFAULT_VALUES, PLAN_TABS, TAB_OF_FIELD, buildPlanPayload, buildPlanUpdatePayload, calcRate, num } from "../views/Subscription/Plan/plan.constants";
 import { createPlan, updatePlan } from "../api/planAPi";
-import { toApiError } from "../api/utils/ApiError";
-import { notifications } from "@mantine/notifications";
 import type { PlanFormValues, PlanTab } from "../types/plan.types";
 
 const validatePlan = (v: PlanFormValues) => {
@@ -48,12 +46,15 @@ export function usePlanForm({ initial, onSave, onClose, isEdit = false, planId }
   const requestClose = () => {
     if (saving) return;
     if (!form.isDirty()) return onClose();
-    modals.openConfirmModal({
-      title: "Discard changes?",
-      children: "You have unsaved changes. If you close now, they will be lost.",
-      labels: { confirm: "Discard", cancel: "Keep editing" },
-      confirmProps: { color: "red" },
-      onConfirm: onClose,
+    openCommonModal({
+      heading: "Discard Changes",
+      subtitle: "You have unsaved changes.",
+      body: "If you close now, your unsaved changes will be lost.",
+      color: "red",
+      buttons: [
+        { label: "Keep editing", variant: "default" },
+        { label: "Discard", color: "red", onClick: onClose },
+      ],
     });
   };
 
@@ -63,7 +64,8 @@ if (saving) return;
 const result = form.validate();
 console.log("2 validation errors", result.errors);
     if (result.hasErrors) {
-      setTab(TAB_OF_FIELD(Object.keys(result.errors)[0]));
+      const first = Object.keys(result.errors)[0];
+      if (first) setTab(TAB_OF_FIELD(first));
       return;
     }
     setSaving(true);
@@ -80,7 +82,7 @@ if (isEdit && planId) {
 }
 await onSave(form.values);
     } catch (err) {
-notifications.show({ color: "red", title: "Couldn't save plan", message: toApiError(err).message });
+      notifyError(err, "Couldn't save plan");
     } finally {
       setSaving(false);
     }
@@ -92,7 +94,10 @@ notifications.show({ color: "red", title: "Couldn't save plan", message: toApiEr
     setTab,
     isLast,
     saving,
-    next: () => setTab(PLAN_TABS[Math.min(tabIndex + 1, PLAN_TABS.length - 1)].value),
+    next: () => {
+      const nextTab = PLAN_TABS[Math.min(tabIndex + 1, PLAN_TABS.length - 1)];
+      if (nextTab) setTab(nextTab.value);
+    },
     reset: () => {
       form.reset();
       setTab("basic");

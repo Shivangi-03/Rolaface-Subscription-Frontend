@@ -286,7 +286,7 @@ export const openCommonModal = ({
 };
 
 /* ==========================================================================
-   3. NOTIFY CONVENIENCE HELPERS (LMS style modal alerts)
+   3. NOTIFY CONVENIENCE HELPERS 
    ========================================================================== */
 export function notifySuccess(message: string, heading = "Success") {
   return openCommonModal({
@@ -317,6 +317,17 @@ export function notifyValidationError(message: string, heading = "Missing inform
     buttons: [{ label: "Close", variant: "filled", color: "yellow" }],
   });
 }
+
+export function notifyInfo(message: string, heading = "Information") {
+  return openCommonModal({
+    heading,
+    color: "blue",
+    icon: <IconInfoCircle size={36} />,
+    body: message,
+    buttons: [{ label: "Ok", variant: "filled", color: "blue" }],
+  });
+}
+
 
 /* ==========================================================================
    4. INLINE PAGE ALERT (AppAlert)

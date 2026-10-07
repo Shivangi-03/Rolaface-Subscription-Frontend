@@ -67,7 +67,10 @@ export function useCustomerForm({ initial, onSave, onClose }: Options) {
     setTab,
     isLast,
     saving,
-    next: () => setTab(CUSTOMER_TABS[Math.min(tabIndex + 1, CUSTOMER_TABS.length - 1)].value),
+    next: () => {
+      const nextTab = CUSTOMER_TABS[Math.min(tabIndex + 1, CUSTOMER_TABS.length - 1)];
+      if (nextTab) setTab(nextTab.value);
+    },
     reset: () => {
       form.reset();
       setTab("details");
