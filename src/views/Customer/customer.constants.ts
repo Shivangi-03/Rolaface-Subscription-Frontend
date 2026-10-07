@@ -178,28 +178,14 @@ const keepAddress = (a: CustomerAddress) => ({
 const keepContact = (c: CustomerContact) => ({
   ...(c.id ? { id: c.id } : {}),
   firstName: c.firstName ?? "",
-  lastName: c.lastName ?? "",
-  designation: c.designation ?? "",
-  department: c.department ?? "",
   email: c.email ?? "",
-  registration_no: c.registration_no ?? "",
   mobile: c.mobile ?? "",
-  phone: c.phone ?? "",
-  isPrimary: !!c.isPrimary,
-  isBilling: !!c.isBilling,
 });
 
 const newPrimaryContact = (v: CustomerFormValues) => ({
   firstName: v.name.trim(),
-  lastName: "",
-  designation: "",
-  department: "",
   email: v.email.trim(),
-  registration_no: "",
   mobile: mobileOf(v),
-  phone: "",
-  isPrimary: true,
-  isBilling: true,
 });
 
 export const buildCreatePayload = (v: CustomerFormValues): Record<string, unknown> => ({
@@ -250,6 +236,7 @@ export const buildUpdatePayload = (v: CustomerFormValues, original: CustomerDeta
   return {
     name: v.name.trim(),
     currency: v.currency,
+    website: v.website.trim(),
     contacts,
     addresses,
   };
