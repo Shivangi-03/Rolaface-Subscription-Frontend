@@ -24,6 +24,7 @@ const theme = createTheme({
   },
   components: {
   Paper: { defaultProps: { radius: "lg" } },
+Modal: { defaultProps: { centered: true } },
   Badge: { defaultProps: { radius: "sm" } },
   Button: { defaultProps: { fw: 600 } },
   Table: { defaultProps: { verticalSpacing: "md", highlightOnHover: true } },
@@ -33,7 +34,7 @@ const theme = createTheme({
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="light">
-      <ModalsProvider>
+     <ModalsProvider modalProps={{ centered: true }}>
         <Notifications position="top-right" limit={5} />
         <AppRoutes />
       </ModalsProvider>
