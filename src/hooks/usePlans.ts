@@ -2,7 +2,9 @@ import { useCallback, useEffect, useState } from "react";
 import { notifications } from "@mantine/notifications";
 import { useClientList, type ListFilters } from "./useClientList";
 import { COLUMNS, fromListItem, fromPlanDetail } from "../views/Subscription/Plan/plan.constants";
-import type { ColumnKey, Plan, PlanDetail, PlanFormValues, PlanListItem } from "../types/plan.types";
+import { useModalStore } from "../store/modalstore";
+import { REFRESH_KEYS, useDataRefreshStore } from "../store/datarefreshstore";
+import type { ColumnKey, Plan, PlanDetail, PlanListItem } from "../types/plan.types";
 import { getAllPlans, getPlanById, updatePlanStatus } from "../api/planAPi";
 import { toApiError } from "../api/utils/ApiError";
 
@@ -22,6 +24,8 @@ const [loading, setLoading] = useState(true);
 const [reloadKey, setReloadKey] = useState(0);
 const [busyId, setBusyId] = useState<string | null>(null);
 const reload = useCallback(() => setReloadKey((k) => k + 1), []);
+const refreshTick = useDataRefreshStore((s) => s.ticks[REFRESH_KEYS.PLAN_LIST] ?? 0);
+const openModal = useModalStore((s) => s.openModal);
 
 useEffect(() => {
   let cancelled = false;
@@ -43,8 +47,7 @@ useEffect(() => {
   return () => {
     cancelled = true;
   };
-}, [reloadKey]);
-  const [editing, setEditing] = useState<Plan | "new" | null>(null);
+}, [reloadKey, refreshTick]);
   const [visible, setVisible] = useState<ColumnKey[]>(COLUMNS.map((c) => c.key));
   const list = useClientList(plans, match);
 
@@ -55,7 +58,13 @@ const openEdit = async (p: Plan) => {
     const res = await getPlanById(p.id);
     const detail = (res?.message?.data ?? res?.data) as PlanDetail | undefined;
     if (!detail || Array.isArray(detail)) throw new Error("Plan not found");
-    setEditing({ ...fromPlanDetail(detail, p.products), id: p.id });
+   openModal({
+id: `plan-${p.id}`,
+type: "plan",
+title: `Edit ${p.name}`,
+initialData: { ...fromPlanDetail(detail, p.products), id: p.id },
+isEdit: true,
+    });
   } catch (err) {
     notifications.show({ color: "red", title: "Couldn't load plan", message: toApiError(err).message });
   } finally {
@@ -81,28 +90,15 @@ const changeStatus = async (p: Plan) => {
 const toggleColumn = (key: ColumnKey) =>
     setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
 
- const save = (values: PlanFormValues) => {
-  const isEdit = editing !== null && editing !== "new";
-  setEditing(null);
-  notifications.show({
-    color: "green",
-    title: isEdit ? "Plan updated" : "Plan created",
-    message: values.name.trim(),
-  });
-  reload();
-};
 return {
 list,
 loading,
 reload,
-    editing,
     visible,
     toggleColumn,
-    openCreate: () => setEditing("new"),
+    openCreate: () => openModal({ type: "plan", id: "plan-new", title: "Add Plan" }),
    openEdit,
 changeStatus,
 busyId,
-    closeModal: () => setEditing(null),
-    save,
   };
 }

@@ -2,16 +2,12 @@ import { useEffect, useState } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
 import { notifications } from "@mantine/notifications";
 import { cancelSubscription, getAllSubscriptions, getSubscriptionById } from "../api/Subscription/subscriptionApi";
-import { getAllPlans } from "../api/planAPi";
-import { getAllCustomers } from "../api/customerApi";
+import { useModalStore } from "../../src/store/modalstore";
+import { REFRESH_KEYS, useDataRefreshStore } from "../../src/store/datarefreshstore";
 import { COLUMNS } from "../views/Subscription/CustomerSubscription/subscription.constants";
 import type {
     ApiSubscription,
-  CustomerOption,
-  PlanListItem,
-    SubscriptionDetail,
   SubscriptionColumnKey,
-  SubscriptionFormValues,
 } from "../types/subscription.types";
 
 export function useSubscriptions() {
@@ -21,11 +17,11 @@ const [page, setPage] = useState(1);
 const [pageSize, setPageSize] = useState(20);
 const [filters, setFilters] = useState({ search: "", status: "all" });
 const [loading, setLoading] = useState(false);
-const [reload, setReload] = useState(0);
-const [plans, setPlans] = useState<PlanListItem[]>([]);
-const [customers, setCustomers] = useState<CustomerOption[]>([]);
+const reload = useDataRefreshStore((s) => s.ticks[REFRESH_KEYS.SUBSCRIPTION_LIST] ?? 0);
+const triggerRefresh = useDataRefreshStore((s) => s.triggerRefresh);
+const openModal = useModalStore((s) => s.openModal);
+
 const [debouncedSearch] = useDebouncedValue(filters.search, 400);
- const [editing, setEditing] = useState<SubscriptionDetail | "new" | null>(null);
 const [opening, setOpening] = useState<string | null>(null);
 const [cancelTarget, setCancelTarget] = useState<ApiSubscription | null>(null);
 const [cancelling, setCancelling] = useState(false);
@@ -52,15 +48,6 @@ return () => {
 cancelled = true;
     };
 }, [page, pageSize, debouncedSearch, filters.status, reload]);
-
-useEffect(() => {
-getAllPlans(1, 100)
-    .then((res) => setPlans((res.data as PlanListItem[]).filter((p) => p.status === "Active")))
-    .catch(() => notifications.show({ color: "red", title: "Error", message: "Failed to load plans" }));
-getAllCustomers(1, 100)
-    .then((res) => setCustomers((res.data as CustomerOption[]).filter((c) => c.status === "Active")))
-    .catch(() => notifications.show({ color: "red", title: "Error", message: "Failed to load customers" }));
-}, []);
 
 const list = {
 rows,
@@ -91,7 +78,7 @@ title: immediate ? "Subscription cancelled" : "Cancellation scheduled",
 message: cancelTarget.name,
     });
 setCancelTarget(null);
-setReload((n) => n + 1);
+triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST);
   } catch (e: any) {
 notifications.show({
 color: "red",
@@ -105,24 +92,12 @@ setCancelling(false);
 
 const toggleColumn =(key: SubscriptionColumnKey) =>
     setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
-
-
-const save = (_values: SubscriptionFormValues, number: string) => {
-// TODO: call create/update subscription API here, then reload
-setEditing(null);
-setReload((n) => n + 1);
-notifications.show({ color: "green", title: "Subscription saved", message: number });
-  };
-
   return {
     list,
-   numbers: rows.map((s) => s.name),
-plans,
-customers,
-    editing,
+
     visible,
     toggleColumn,
-    openCreate: () => setEditing("new"),
+   openCreate: () => openModal({ type: "subscription", id: "subscription-new", title: "Add Subscription" }),
     opening,
 cancelTarget,
 cancelling,
@@ -133,14 +108,19 @@ openEdit: async (s: ApiSubscription) => {
 setOpening(s.name);
 try {
 const res = await getSubscriptionById(s.name);
-setEditing(res.data);
+openModal({
+id: `subscription-${res.data.name}`,
+type: "subscription",
+title: `Edit ${res.data.name}`,
+initialData: res.data,
+isEdit: true,
+    });
     } catch {
 notifications.show({ color: "red", title: "Error", message: "Failed to load subscription" });
     } finally {
 setOpening(null);
     }
   },
-    closeModal: () => setEditing(null),
-    save,
+    
   };
 }

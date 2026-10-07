@@ -1,17 +1,18 @@
 import {
   Badge, Box, Button, Divider, Grid, Group, Modal, NumberInput, Paper, ScrollArea,
-   LoadingOverlay, Select, SimpleGrid, Stack, Text, TextInput, Textarea, ThemeIcon,
+  ActionIcon, LoadingOverlay, Select, SimpleGrid, Stack, Text, TextInput, Textarea, ThemeIcon,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { IconCalendar, IconLock, IconUserCheck } from "@tabler/icons-react";
+import { IconCalendar, IconLock, IconMinus, IconUserCheck } from "@tabler/icons-react";
 import SubscriptionSummary from "./CustomerSubscriptionSummary";
+import { useModalStore } from "../../../store/modalstore";
+import { useSubscriptionLookups } from "../../../hooks/useSubscriptionLooksups";
 import { useSubscriptionForm } from "../../../hooks/useSubscriptionForm";
 import { formatMoney } from "../../../views/Subscription/Plan/plan.constants";
-import type { CustomerOption, PlanDetail, PlanListItem, SubscriptionDetail, SubscriptionFormValues } from "../../../types/subscription.types";
+import type { PlanDetail, SubscriptionDetail } from "../../../types/subscription.types";
 
 const DATE_DISPLAY = "DD-MMM-YYYY";
 
-const EMPTY_PLANS: PlanListItem[] = [];
 
 const Label = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
@@ -92,27 +93,22 @@ const PlanDetails = ({ plan, loading }: { plan: PlanDetail | null; loading: bool
 
 interface Props {
     subscription: SubscriptionDetail | null;
-    numbers: string[];
-  customers: CustomerOption[];
-  plans?: PlanListItem[];
-  onSave: (values: SubscriptionFormValues, number: string) => void;
+    modalId: string;
   onClose: () => void;
 }
 
 const SubscriptionFormModal = ({
-  subscription,
-   numbers,
-  customers,
-  plans = EMPTY_PLANS,
-  onSave,
+   subscription,
+  modalId,
   onClose,
 }: Props) => {
     const { form, number, saving, plan, planLoading, setPlan, setStart, submit, requestClose } = useSubscriptionForm({
-    subscription,
-    numbers,
-    onSave,
+     subscription,
     onClose,
   });
+   const { plans, customers } = useSubscriptionLookups();
+  const minimized = useModalStore((s) => s.modals.find((m) => m.id === modalId)?.minimized ?? false);
+  const minimizeModal = useModalStore((s) => s.minimizeModal);
   const v = form.values;
 
    const planOptions = plans.map((p) => ({ value: p.name, label: p.plan_name }));
@@ -123,10 +119,11 @@ const SubscriptionFormModal = ({
   if (subscription && !customerOptions.some((o) => o.value === subscription.customer)) {
     customerOptions.push({ value: subscription.customer, label: `${subscription.customer_name} (${subscription.customer})` });
   }
+  console.log("modal", modalId, minimized);
 
   return (
     <Modal
-      opened
+            opened={!minimized}
       onClose={requestClose}
       centered
       size="70rem"
@@ -139,7 +136,7 @@ const SubscriptionFormModal = ({
         title: { flex: 1 },
       }}
       title={
-        <Group gap="sm" wrap="nowrap">
+               <Group gap="sm" wrap="nowrap" w="100%">
           <ThemeIcon size={40} variant="white" color="gray" radius="md">
             <IconUserCheck size={22} />
           </ThemeIcon>
@@ -148,9 +145,12 @@ const SubscriptionFormModal = ({
               {subscription ? "Edit Subscription" : "Add Subscription"}
             </Text>
             <Text size="sm" opacity={0.85}>
-              Assign customer & plan.
+                          Assign customer & plan.
             </Text>
           </div>
+          <ActionIcon variant="subtle" c="white" ml="auto" aria-label="Minimize" onClick={() => minimizeModal(modalId)}>
+            <IconMinus size={18} />
+          </ActionIcon>
         </Group>
       }
     >
@@ -181,7 +181,7 @@ const SubscriptionFormModal = ({
                     onChange={setPlan}
                     error={form.errors.planId}
                   />
-                  <TextInput label="Subscription Number" value={number} disabled />
+                  <TextInput label="Subscription Number" value={number || "Auto-generated"} disabled />
                 </SimpleGrid>
               </Paper>
 
