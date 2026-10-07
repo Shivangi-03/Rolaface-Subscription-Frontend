@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useForm } from "@mantine/form";
-import { modals } from "@mantine/modals";
+import { openCommonModal } from "../utils/Alert";
 import { TAB_OF_FIELD, CUSTOMER_TABS, defaultValues, validateCustomer } from "../views/Customer/customer.constants";
 import type { CustomerFormValues, CustomerTab } from "../types/customer.types";
 
@@ -31,12 +31,15 @@ export function useCustomerForm({ initial, onSave, onClose }: Options) {
   const requestClose = () => {
     if (saving) return;
     if (!form.isDirty()) return onClose();
-    modals.openConfirmModal({
-      title: "Discard changes?",
-      children: "You have unsaved changes. If you close now, they will be lost.",
-      labels: { confirm: "Discard", cancel: "Keep editing" },
-      confirmProps: { color: "red" },
-      onConfirm: onClose,
+    openCommonModal({
+      heading: "Discard Changes",
+      subtitle: "You have unsaved changes.",
+      body: "If you close now, your unsaved changes will be lost.",
+      color: "red",
+      buttons: [
+        { label: "Keep editing", variant: "default" },
+        { label: "Discard", color: "red", onClick: onClose },
+      ],
     });
   };
 

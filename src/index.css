@@ -16,6 +16,32 @@
 
   --app-table-head-bg: var(--app-bg);
   --app-table-head-fg: var(--app-text-dimmed);
+
+  /* Semantic Status Colors (Reusable across alerts, badges, tags, tables) */
+  --color-danger: #e03131;
+  --color-danger-rgb: 224, 49, 49;
+  --color-danger-bg: rgba(224, 49, 49, 0.05);
+  --color-danger-border: rgba(224, 49, 49, 0.15);
+
+  --color-warning: #f08c00;
+  --color-warning-rgb: 240, 140, 0;
+  --color-warning-bg: rgba(240, 140, 0, 0.05);
+  --color-warning-border: rgba(240, 140, 0, 0.15);
+
+  --color-success: #2f9e44;
+  --color-success-rgb: 47, 158, 68;
+  --color-success-bg: rgba(47, 158, 68, 0.05);
+  --color-success-border: rgba(47, 158, 68, 0.15);
+
+  --color-info: #1971c2;
+  --color-info-rgb: 25, 113, 194;
+  --color-info-bg: rgba(25, 113, 194, 0.05);
+  --color-info-border: rgba(25, 113, 194, 0.15);
+
+  --color-neutral: #495057;
+  --color-neutral-rgb: 73, 80, 87;
+  --color-neutral-bg: rgba(73, 80, 87, 0.05);
+  --color-neutral-border: rgba(73, 80, 87, 0.15);
 }
 
 body {
