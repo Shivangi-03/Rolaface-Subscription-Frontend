@@ -5,7 +5,7 @@ import { notifyInfo } from "../../../utils/Alert";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import CancelSubscriptionModal from "../../../components/Subscription/CustomerSubscription/cancelSubscriptionModal";
-import SubscriptionFormModal from "../../../components/Subscription/CustomerSubscription/CustomerSubscriptionModal";
+
 import { useSubscriptions } from "../../../hooks/useSubscriptions";
 import { formatMoney } from "../../../views/Subscription/Plan/plan.constants";
 import { COLUMNS, STATUS_OPTIONS, formatDate, statusColor } from "./subscription.constants";
@@ -49,8 +49,10 @@ const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = 
   ),
 };
 
+const isCancelled = (s: ApiSubscription) => s.status.toLowerCase() === "cancelled";
+
 const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
-  const { list, numbers, plans, customers, editing, visible, toggleColumn, openCreate, openEdit, opening, closeModal, save, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel } = useSubscriptions();
+const { list, visible, toggleColumn, openCreate, openEdit, opening, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel } = useSubscriptions();
   const columns: Column<ApiSubscription>[] = [
     ...COLUMNS.filter((c) => visible.includes(c.key)).map((c) => ({
       key: c.key,
@@ -62,11 +64,12 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
       header: "Actions",
       align: "right",
       render: (s) =>
-                s.status.toLowerCase() !== "cancelled" ? (
+               (
                       <Group gap={4} justify="flex-end" wrap="nowrap">
             <ActionIcon
               variant="subtle"
               loading={opening === s.name}
+              disabled={isCancelled(s)}
               onClick={() => openEdit(s)}
               aria-label={`Edit ${s.name}`}
             >
@@ -74,7 +77,7 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
             </ActionIcon>
             <Menu position="bottom-end" withinPortal>
               <Menu.Target>
-                <ActionIcon variant="subtle" aria-label={`More actions for ${s.name}`}>
+               <ActionIcon variant="subtle" disabled={isCancelled(s)} aria-label={`More actions for ${s.name}`}>
                   <IconDotsVertical size={18} />
                 </ActionIcon>
               </Menu.Target>
@@ -85,7 +88,7 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
               </Menu.Dropdown>
             </Menu>
           </Group>
-        ) : null,
+       ),
     },
   ];
 
@@ -161,18 +164,6 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
           loading={cancelling}
           onConfirm={confirmCancel}
           onClose={closeCancel}
-        />
-      )}
-
-      {editing && (
-        <SubscriptionFormModal
-                    key={editing === "new" ? "new" : editing.name}
-          subscription={editing === "new" ? null : editing}
-                   numbers={numbers}
-          plans={plans}
-          customers={customers}
-          onSave={save}
-          onClose={closeModal}
         />
       )}
     </>

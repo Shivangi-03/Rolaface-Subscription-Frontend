@@ -1,6 +1,7 @@
 import { useEffect } from "react";
-import { Box, Button, Grid, Group, Modal, ScrollArea, Tabs, Text, ThemeIcon } from "@mantine/core";
-import { IconBox, IconInfoCircle, IconRefresh, IconStack2, IconWallet, type Icon } from "@tabler/icons-react";
+import { ActionIcon, Box, Button, Grid, Group, Modal, ScrollArea, Tabs, Text, ThemeIcon } from "@mantine/core";
+import { IconBox, IconInfoCircle, IconMinus, IconRefresh, IconStack2, IconWallet, type Icon } from "@tabler/icons-react";
+import { useModalStore } from "../../../store/modalstore";
 import PlanSummary from "./PlanSummaryPanel";
 import BasicInfoTab from "./PlanBasicInfoTab";
 import ModulesTab from "./PlanModulesTab";
@@ -9,7 +10,7 @@ import TrialTab from "./PlanTrialRenewalTab";
 import { usePlanForm } from "../../../hooks/usePlanForm";
 import { usePlanCatalog } from "../../../hooks/usePlanCatalog";
 import { PLAN_TABS } from "../../../views/Subscription/Plan/plan.constants";
-import type { Plan, PlanFormValues, PlanTab } from "../../../types/plan.types";
+import type { Plan, PlanTab } from "../../../types/plan.types";
 
 const TAB_ICONS: Record<PlanTab, Icon> = {
   basic: IconInfoCircle,
@@ -19,17 +20,18 @@ const TAB_ICONS: Record<PlanTab, Icon> = {
 };
 
 interface Props {
-  plan: Plan | null; 
-    onSave: (values: PlanFormValues) => void | Promise<void>;
+   modalId: string;
+  plan: Plan | null;
+
   onClose: () => void;
 }
 
-const PlanFormModal = ({ plan, onSave, onClose }: Props) => {
+const PlanFormModal = ({ plan, modalId, onClose }: Props) => {
   const catalog = usePlanCatalog();
-console.log("catalog status", catalog.status);
+  const minimized = useModalStore((s) => s.modals.find((m) => m.id === modalId)?.minimized ?? false);
+  const minimizeModal = useModalStore((s) => s.minimizeModal);
   const { form, tab, setTab, isLast, saving, next, reset, submit, requestClose } = usePlanForm({
-    initial: plan?.values,
-    onSave,
+     initial: plan?.values,
     onClose,
     isEdit: !!plan,
     planId: plan?.id,
@@ -54,7 +56,7 @@ console.log("catalog status", catalog.status);
 
   return (
     <Modal
-      opened
+           opened={!minimized}
       onClose={requestClose}
       centered
       size="70rem"
@@ -67,7 +69,7 @@ console.log("catalog status", catalog.status);
         title: { flex: 1 },
       }}
       title={
-        <Group gap="sm" wrap="nowrap">
+                <Group gap="sm" wrap="nowrap" w="100%">
           <ThemeIcon size={40} variant="white" color="gray" radius="md">
             <IconStack2 size={22} />
           </ThemeIcon>
@@ -76,9 +78,12 @@ console.log("catalog status", catalog.status);
               {plan ? "Edit Plan" : "Add Plan"}
             </Text>
             <Text size="sm" opacity={0.85}>
-              Set up products, modules, pricing, billing, and renewal rules.
+                           Set up products, modules, pricing, billing, and renewal rules.
             </Text>
           </div>
+          <ActionIcon variant="subtle" c="white" ml="auto" aria-label="Minimize" onClick={() => minimizeModal(modalId)}>
+            <IconMinus size={18} />
+          </ActionIcon>
         </Group>
       }
     >

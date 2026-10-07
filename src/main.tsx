@@ -10,6 +10,8 @@ import { MantineProvider, createTheme } from "@mantine/core";
 import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import AppRoutes from "./routes/AppRoutes";
+import GlobalModalHandler from "./components/globalmodalhandler";
+import ModalTaskbar from "./components/common/modalTaskbar";
 
 const theme = createTheme({
   fontFamily: '"Inter Variable", system-ui, sans-serif',
@@ -23,20 +25,22 @@ const theme = createTheme({
     ],
   },
   components: {
-  Paper: { defaultProps: { radius: "lg" } },
-Modal: { defaultProps: { centered: true } },
-  Badge: { defaultProps: { radius: "sm" } },
-  Button: { defaultProps: { fw: 600 } },
-  Table: { defaultProps: { verticalSpacing: "md", highlightOnHover: true } },
-},
+    Paper: { defaultProps: { radius: "lg" } },
+    Modal: { defaultProps: { centered: true } },
+    Badge: { defaultProps: { radius: "sm" } },
+    Button: { defaultProps: { fw: 600 } },
+    Table: { defaultProps: { verticalSpacing: "md", highlightOnHover: true } },
+  },
 });
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <MantineProvider theme={theme} defaultColorScheme="light">
-     <ModalsProvider modalProps={{ centered: true }}>
+      <ModalsProvider modalProps={{ centered: true }}>
         <Notifications position="top-right" limit={5} />
         <AppRoutes />
+        <GlobalModalHandler />
+        <ModalTaskbar />
       </ModalsProvider>
     </MantineProvider>
   </StrictMode>,

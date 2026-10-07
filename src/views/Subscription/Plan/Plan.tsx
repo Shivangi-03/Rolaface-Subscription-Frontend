@@ -5,7 +5,6 @@ import { IconChevronDown, IconColumns3, IconDots, IconEdit, IconStack2 } from "@
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import ProductBadges from "../../../components/ProductBadges";
-import PlanFormModal from "../../../components/Subscription/Plan/PlanModal";
 import { usePlans } from "../../../hooks/usePlans";
 import { usePlanCatalog } from "../../../hooks/usePlanCatalog";
 import { BILLING_LABEL, BILLING_SUFFIX, COLUMNS, PRICING_LABEL, formatMoney } from "./plan.constants";
@@ -47,7 +46,7 @@ const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> =
 };
 
 const Plans = ({ embedded = false }: { embedded?: boolean }) => {
-const { list, editing, visible, toggleColumn, openCreate, openEdit, closeModal, save, busyId, changeStatus, loading } = usePlans();
+const { list, visible, toggleColumn, openCreate, openEdit, busyId, changeStatus, loading } = usePlans();
   const catalog = usePlanCatalog(); 
   const columns: Column<Plan>[] = [
     ...COLUMNS.filter((c) => visible.includes(c.key)).map((c) => ({
@@ -175,14 +174,7 @@ const { list, editing, visible, toggleColumn, openCreate, openEdit, closeModal, 
         onPageChange={list.setPage}
         onPageSizeChange={list.setPageSize}
       />
-      {editing && (
-        <PlanFormModal
-          key={editing === "new" ? "new" : editing.id}
-          plan={editing === "new" ? null : editing}
-          onSave={save}
-          onClose={closeModal}
-        />
-      )}
+    
     </>
   );
 };

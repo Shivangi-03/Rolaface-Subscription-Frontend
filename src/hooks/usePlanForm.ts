@@ -3,6 +3,9 @@ import { useForm } from "@mantine/form";
 import { openCommonModal, notifyError } from "../utils/Alert";
 import { DEFAULT_VALUES, PLAN_TABS, TAB_OF_FIELD, buildPlanPayload, buildPlanUpdatePayload, calcRate, num } from "../views/Subscription/Plan/plan.constants";
 import { createPlan, updatePlan } from "../api/planAPi";
+import { toApiError } from "../api/utils/ApiError";
+import { REFRESH_KEYS, useDataRefreshStore } from "../../src/store/datarefreshstore";
+import { notifications } from "@mantine/notifications";
 import type { PlanFormValues, PlanTab } from "../types/plan.types";
 
 const validatePlan = (v: PlanFormValues) => {
@@ -21,13 +24,12 @@ const validatePlan = (v: PlanFormValues) => {
 
 interface Options {
   initial?: PlanFormValues;
-onSave: (values: PlanFormValues) => void | Promise<void>;
 onClose: () => void;
 isEdit?: boolean;
 planId?: string;
 }
 
-export function usePlanForm({ initial, onSave, onClose, isEdit = false, planId }: Options) {
+export function usePlanForm({ initial, onClose, isEdit = false, planId }: Options) {
   const form = useForm<PlanFormValues>({ initialValues: initial ?? DEFAULT_VALUES, validate: validatePlan });
   const [tab, setTab] = useState<PlanTab>("basic");
   const [saving, setSaving] = useState(false);
@@ -80,7 +82,9 @@ if (isEdit && planId) {
   console.log("PLAN UPDATE PAYLOAD", payload);
   if (Object.keys(payload).length > 1) await updatePlan(payload);
 }
-await onSave(form.values);
+useDataRefreshStore.getState().triggerRefresh(REFRESH_KEYS.PLAN_LIST);
+notifications.show({ color: "green", title: isEdit ? "Plan updated" : "Plan created", message: form.values.name });
+onClose();
     } catch (err) {
       notifyError(err, "Couldn't save plan");
     } finally {

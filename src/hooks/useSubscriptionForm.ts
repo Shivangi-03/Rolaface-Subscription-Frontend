@@ -5,7 +5,8 @@ import { openCommonModal, notifyError } from "../utils/Alert";
 import { getPlanById } from "../api/planAPi";
 import { createSubscription, updateSubscription } from "../api/Subscription/subscriptionApi";
 import { num } from "../views/Subscription/Plan/plan.constants";
-import { addPeriod, emptyValues, nextNumber } from "../views/Subscription/CustomerSubscription/subscription.constants";
+import { useDataRefreshStore, REFRESH_KEYS } from "../store/datarefreshstore";
+import { addPeriod, emptyValues } from"../views/Subscription/CustomerSubscription/subscription.constants";
 import type { BillingFrequency } from "../types/plan.types";
 import type {
 PlanDetail,
@@ -56,19 +57,18 @@ const validateSubscription = (v: SubscriptionFormValues, price: number) => {
 
 interface Options {
  subscription: SubscriptionDetail | null;
-  numbers: string[]; 
-  onSave: (values: SubscriptionFormValues, number: string) => void;
+
   onClose: () => void;
 }
 
-export function useSubscriptionForm({ subscription, numbers, onSave, onClose }: Options) {
+export function useSubscriptionForm({ subscription, onClose }: Options) {
 const [plan, setPlanDetail] = useState<PlanDetail | null>(() => (subscription ? toPlanDetail(subscription) : null));
 const [planLoading, setPlanLoading] = useState(false);
 const form = useForm<SubscriptionFormValues>({
 initialValues: subscription ? toFormValues(subscription) : emptyValues(),
 validate: (v) => validateSubscription(v, plan?.base_price ?? 0),
   });
- const [number] = useState(() => subscription?.name ?? nextNumber(numbers));
+const [number] = useState(() => subscription?.name ?? "");
   const [saving, setSaving] = useState(false);
 
   const dirty = form.isDirty();
@@ -121,7 +121,13 @@ if (date && plan) form.setFieldValue("expiryDate", addPeriod(date, toFrequency(p
     });
   };
 
-  const submit = async () => {
+const done = (message: string) => {
+useDataRefreshStore.getState().triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST);
+notifications.show({ color: "green", title: "Subscription saved", message });
+onClose();
+  };
+
+const submit = async () => {
     if (saving) return;
    if (form.validate().hasErrors) return;
 if (subscription) {
@@ -135,7 +141,7 @@ if (Object.keys(changes).length === 0) return onClose();
 setSaving(true);
 try {
 await updateSubscription({ id: subscription.name, ...changes });
-onSave(v, subscription.name);
+done(subscription.name);
     } catch (e: any) {
       notifyError(e, "Failed to update subscription");
     } finally {
@@ -146,15 +152,15 @@ onSave(v, subscription.name);
   setSaving(true);
     try {
      const v = form.values;
-      const resp = await createSubscription({
-        customer: v.customerId,
-        plan: v.planId,
-        start_date: dayjs(v.startDate).format("YYYY-MM-DD"),
-        billing_frequency: plan?.billing_frequency ?? "",
-        discount_amount: num(v.discount),
-        ...(v.notes && { notes: v.notes }),
-      });
-      onSave(v, resp?.data?.name ?? number);
+const resp = await createSubscription({
+customer: v.customerId,
+plan: v.planId,
+start_date: dayjs(v.startDate).format("YYYY-MM-DD"),
+billing_frequency: plan?.billing_frequency ?? "",
+discount_amount: num(v.discount),
+...(v.notes && { notes: v.notes }),
+    });
+done(resp?.data?.name ?? "Subscription created");
     } catch (e: any) {
       notifyError(e, "Failed to create subscription");
     } finally {
