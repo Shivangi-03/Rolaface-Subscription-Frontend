@@ -48,11 +48,11 @@ const Customers = () => {
                 <IconEdit size={18} />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label={active ? "Disable" : "Enable"}>
+            <Tooltip label={active ? "Inactive" : "Active"}>
               <ActionIcon
                 variant="subtle"
                 color={active ? "orange" : "green"}
-                aria-label={`${active ? "Disable" : "Enable"} ${row.name}`}
+                aria-label={`${active ? "Inactive" : "Active"} ${row.name}`}
                 onClick={() => c.toggleStatus(row)}
               >
                 {active ? <IconBan size={18} /> : <IconCircleCheck size={18} />}

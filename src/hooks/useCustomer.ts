@@ -88,23 +88,22 @@ export function useCustomers() {
   };
 
   const toggleStatus = (row: CustomerSummary) => {
-    const disabling = row.status === "Active";
+    const active = row.status === "Active";
     openCommonModal({
-      heading: disabling ? "Disable Customer" : "Enable Customer",
-      subtitle: "Please confirm your action.",
-      body: `${row.name} (${row.id}) will be ${disabling ? "disabled" : "enabled"}.`,
-      color: disabling ? "red" : "green",
+      heading: active ? "Inactive Customer" : "Active Customer",
+      body: `${row.name} (${row.id}) will be set to ${active ? "Inactive" : "Active"}.`,
+      color: active ? "red" : "green",
       buttons: [
         { label: "Cancel", variant: "default" },
         {
-          label: disabling ? "Disable" : "Enable",
-          color: disabling ? "red" : "green",
+          label: active ? "Inactive" : "Active",
+          color: active ? "red" : "green",
           onClick: async () => {
             try {
-              await updateCustomerStatus(row.id, disabling ? "inactive" : "active");
+              await updateCustomerStatus(row.id, active ? "inactive" : "active");
               notifySuccess(
-                `${row.name} has been ${disabling ? "disabled" : "enabled"} successfully.`,
-                disabling ? "Customer Disabled" : "Customer Enabled"
+                `${row.name} has been set to ${active ? "Inactive" : "Active"} successfully.`,
+                active ? "Customer Inactive" : "Customer Active"
               );
               reload();
             } catch (err) {
