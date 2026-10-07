@@ -15,6 +15,14 @@ export const API = {
     subModules: `${ERP_BASE}/api/resource/${encodeURIComponent("Custom Sub Module")}`,
   },
 
+
+  country:{
+     getCountries: `${ERP_BASE}/api/resource/Country`
+  },
+
+  currency:{
+      getCurrency:`${ERP_BASE}/api/method/custom_api.api.search.get_currencies`
+  },
   /* =========================
    * CUSTOMER
    * ========================= */

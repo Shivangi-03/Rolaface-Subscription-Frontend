@@ -13,7 +13,6 @@ export const CUSTOMER_TABS: { value: CustomerTab; label: string }[] = [
   { value: "address", label: "Address" },
 ];
 
-// field -> tab where its error is shown
 export const TAB_OF_FIELD = (field: string): CustomerTab =>
   field.startsWith("billing") || field.startsWith("shipping") ? "address" : "details";
 
@@ -32,13 +31,22 @@ export const defaultValues = (): CustomerFormValues => ({
   mobileCode: "",
   mobileNumber: "",
   email: "",
+  website: "",
   sameAsBilling: true,
   billing: emptyAddress(),
   shipping: emptyAddress(),
 });
 
-// ── validation ──
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const isValidWebsite = (s: string) => {
+  try {
+    const u = new URL(/^https?:\/\//i.test(s) ? s : `https://${s}`);
+    return /^[^.\s]+(\.[^.\s]+)+$/.test(u.hostname);
+  } catch {
+    return false;
+  }
+};
 
 export const validateCustomer = (v: CustomerFormValues) => {
   const e: Record<string, string> = {};
@@ -52,6 +60,9 @@ export const validateCustomer = (v: CustomerFormValues) => {
   if (!v.email.trim()) e.email = "Email is required";
   else if (!EMAIL_RE.test(v.email.trim())) e.email = "Invalid email format";
 
+  if (!v.website.trim()) e.website = "Website is required";
+else if (!isValidWebsite(v.website.trim())) e.website = "Enter a valid website, e.g. https://example.com";
+
   const checkAddress = (key: "billing" | "shipping", a: AddressValues) => {
     if (!a.line1.trim()) e[`${key}.line1`] = "Address line 1 is required";
     if (!a.city.trim()) e[`${key}.city`] = "City is required";
@@ -64,7 +75,6 @@ export const validateCustomer = (v: CustomerFormValues) => {
   return e;
 };
 
-// ── phone ──
 export const splitMobile = (mobile?: string): { code: string; number: string } => {
   const clean = (mobile ?? "").replace(/\s/g, "");
   if (!clean) return { code: "", number: "" };
@@ -84,7 +94,6 @@ export const sanitizeCode = (value: string) => {
 
 export const sanitizeDigits = (value: string) => value.replace(/\D/g, "").slice(0, 14);
 
-// ── API detail -> form ──
 const fromApiAddress = (a?: CustomerAddress): AddressValues => ({
   line1: a?.line1 ?? "",
   line2: a?.line2 ?? "",
@@ -133,14 +142,13 @@ export const mapDetailToForm = (d: CustomerDetail): CustomerFormValues => {
     mobileCode: mob.code,
     mobileNumber: mob.number,
     email: contact?.email ?? d.email ?? "",
-    // no shipping saved => treat as "same as billing"
     sameAsBilling: isEmptyAddress(shipping) || sameAddress(billing, shipping),
+    website: d.website ?? "",
     billing,
     shipping,
   };
 };
 
-// ── form -> API payload ──
 const mobileOf = (v: CustomerFormValues) => `${v.mobileCode.trim()}${v.mobileNumber.trim()}`;
 
 const toApiAddress = (type: string, a: AddressValues, base?: CustomerAddress, isPrimary = false) => ({
@@ -167,7 +175,6 @@ const keepAddress = (a: CustomerAddress) => ({
   isPrimary: !!a.isPrimary,
 });
 
-// same keys the ERP sends for a contact
 const keepContact = (c: CustomerContact) => ({
   ...(c.id ? { id: c.id } : {}),
   firstName: c.firstName ?? "",
@@ -183,7 +190,7 @@ const keepContact = (c: CustomerContact) => ({
 });
 
 const newPrimaryContact = (v: CustomerFormValues) => ({
-  firstName: v.name.trim(), // single "name" field => used as primary contact name too
+  firstName: v.name.trim(),
   lastName: "",
   designation: "",
   department: "",
@@ -200,18 +207,15 @@ export const buildCreatePayload = (v: CustomerFormValues): Record<string, unknow
   displayName: v.name.trim(),
   currency: v.currency,
   contacts: [newPrimaryContact(v)],
+  website: v.website.trim(),
   addresses: [
     toApiAddress("Billing", v.billing, undefined, true),
     toApiAddress("Shipping", v.sameAsBilling ? v.billing : v.shipping),
   ],
 });
 
-/**
- * Edit: keep everything we don't show (other contacts, extra addresses, ids)
- * and change only name, currency, primary contact email/mobile and Billing/Shipping address.
- */
+
 export const buildUpdatePayload = (v: CustomerFormValues, original: CustomerDetail): Record<string, unknown> => {
-  // contacts
   const origContacts = original.contacts ?? [];
   let contacts: Record<string, unknown>[];
   if (origContacts.length === 0) {
@@ -226,7 +230,6 @@ export const buildUpdatePayload = (v: CustomerFormValues, original: CustomerDeta
     );
   }
 
-  // addresses
   const shippingSrc = v.sameAsBilling ? v.billing : v.shipping;
   let hasBilling = false;
   let hasShipping = false;
