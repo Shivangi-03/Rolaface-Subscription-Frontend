@@ -1,6 +1,7 @@
 import { Group, Input, NumberInput, Paper, Radio, Select, SegmentedControl, SimpleGrid, Stack, Text } from "@mantine/core";
 import CatalogGate from "../Plan/Cataloggate";
-import { BILLING_OPTIONS, CURRENCIES, calcRate, formatMoney } from "../../../views/Subscription/Plan/plan.constants";
+import { useCurrencySelect, withSelectOnFocus } from "../../../hooks/uselookupoptions";
+import { BILLING_OPTIONS, calcRate, formatMoney } from "../../../views/Subscription/Plan/plan.constants";
 import type { BillingFrequency, PlanCatalog, PlanForm, PricingModel } from "../../../types/plan.types";
 
 interface Props {
@@ -13,6 +14,9 @@ const PricingTab = ({ form, catalog }: Props) => {
   const perModule = v.pricingModel === "per_module";
   const selected = catalog.modules.filter((m) => v.modules.includes(m.id));
   const productName = (code: string) => catalog.products.find((p) => p.code === code)?.name ?? code;
+
+  // currency: type karte hi API ko ?search= ke saath (debounced) call hoti hai
+  const currency = useCurrencySelect(v.currency);
 
   return (
     <Stack gap="md">
@@ -63,9 +67,16 @@ const PricingTab = ({ form, catalog }: Props) => {
           label="Currency"
           required
           searchable
+          allowDeselect={false}
+          autoComplete="off"
           placeholder="Search currency..."
-          data={CURRENCIES}
-          {...form.getInputProps("currency")}
+          nothingFoundMessage={
+            currency.loading ? "Searching..." : currency.error ? "Couldn't load currencies" : "No currency found"
+          }
+          data={currency.options}
+          filter={({ options }) => options}
+          onSearchChange={currency.setSearch}
+          {...withSelectOnFocus(form.getInputProps("currency"))}
         />
         <NumberInput
           label="Base Price"
@@ -115,9 +126,15 @@ const PricingTab = ({ form, catalog }: Props) => {
                         </Text>
                       )}
                     </div>
-                    <NumberInput w={110} min={0} decimalScale={2} aria-label={`${m.name} price`}value={v.modulePrices[m.id] ?? ""}
-onChange={(val) => form.setFieldValue("modulePrices", { ...v.modulePrices, [m.id]: val })}
-error={form.errors.modulePrices ? " " : undefined} />
+                    <NumberInput
+                      w={110}
+                      min={0}
+                      decimalScale={2}
+                      aria-label={`${m.name} price`}
+                      value={v.modulePrices[m.id] ?? ""}
+                      onChange={(val) => form.setFieldValue("modulePrices", { ...v.modulePrices, [m.id]: val })}
+                      error={form.errors.modulePrices ? " " : undefined}
+                    />
                   </Group>
                 </Paper>
               ))}
