@@ -2,7 +2,7 @@ import type { UseFormReturnType } from "@mantine/form";
 import type { ApiError } from "../api/utils/ApiError";
 
 export type ProductCode = string;
-export type PlanStatus = "draft" | "active";
+export type PlanStatus = "draft" | "active" | "inactive";
 export type BillingFrequency = "monthly" | "quarterly" | "half_yearly" | "yearly";
 export type PricingModel = "flat" | "per_module";
 export type RenewalMode = "auto" | "fixed";

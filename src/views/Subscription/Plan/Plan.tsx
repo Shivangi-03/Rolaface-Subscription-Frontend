@@ -39,10 +39,13 @@ const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> =
   ),
   trial: (p) => <Text size="sm">{p.trialDays ? `${p.trialDays} Days` : "None"}</Text>,
   status: (p) => (
-    <Badge variant="light" color={p.status === "active" ? "green" : "yellow"}>
-            {p.status === "active" ? "Active" : "Inactive"}
-    </Badge>
-  ),
+  <Badge
+    variant="light"
+    color={p.status === "active" ? "green" : p.status === "inactive" ? "gray" : "yellow"}
+  >
+    {p.status}
+  </Badge>
+),
 };
 
 const Plans = ({ embedded = false }: { embedded?: boolean }) => {

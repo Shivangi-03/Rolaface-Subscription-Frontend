@@ -149,13 +149,20 @@ const invert = <T extends string>(m: Record<T, string>) =>
 const BILLING_FROM_API = invert(BILLING_API);
 const PRICING_FROM_API = invert(PRICING_API);
 
+const toPlanStatus = (s?: string): Plan["status"] => {
+  const v = s?.toLowerCase();
+  if (v === "active") return "active";
+  if (v === "inactive") return "inactive";
+  return "draft";
+};
+
 export const fromListItem = (r: PlanListItem): Plan => {
   const values: PlanFormValues = {
     ...DEFAULT_VALUES,
     products: r.products ?? [],
     name: r.plan_name,
     code: r.plan_code,
-    status: r.status?.toLowerCase() === "active" ? "active" : "draft",
+    status: toPlanStatus(r.status),
     billingFrequency: BILLING_FROM_API[r.billing_frequency] ?? "monthly",
     pricingModel: PRICING_FROM_API[r.pricing_model] ?? "flat",
     currency: r.currency,
