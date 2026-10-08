@@ -1,15 +1,14 @@
-import { ActionIcon, Badge, Group, Text, Tooltip } from "@mantine/core";
-import { IconBan, IconCircleCheck, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react";
+import { ActionIcon, Badge, Button, Group, Text, Tooltip } from "@mantine/core";
+import { IconBan, IconCircleCheck, IconDownload, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react";
 import PageHeader from "../../components/PageHeader";
 import DataTable, { type Column } from "../../components/table";
-import CustomerModal from "../../components/Customer/CustomerModal";
 import { useCustomers } from "../../hooks/useCustomer";
+import { useCustomerExport } from "../../hooks/useCustomerExport";
 import AppAlert from "../../utils/Alert";
-
-
 
 const Customers = () => {
   const c = useCustomers();
+  const exp = useCustomerExport(c.search);
 
   type Row = (typeof c.rows)[number];
 
@@ -80,16 +79,27 @@ const Customers = () => {
         <AppAlert title="Couldn't load customers" message={c.error} onRetry={c.reload} retrying={c.loading} mb="md" />
       )}
 
-        <DataTable
+      <DataTable
         columns={columns}
         data={c.rows}
         rowKey={(r) => r.id}
-               loading={c.loading}
+        loading={c.loading}
         height="calc(100vh - 100px)"
         emptyMessage="No customers found"
         searchValue={c.search}
         searchPlaceholder="Search customers..."
         onSearch={c.setSearch}
+        filters={
+          <Button
+            variant="default"
+            leftSection={<IconDownload size={16} />}
+            onClick={exp.exportAll}
+            loading={exp.exporting}
+            disabled={c.loading || c.totalItems === 0}
+          >
+            Export
+          </Button>
+        }
         enableAdd
         addLabel="Add Customer"
         onAdd={c.openCreate}
@@ -99,15 +109,6 @@ const Customers = () => {
         onPageChange={c.setPage}
         onPageSizeChange={c.setPageSize}
       />
-
-      {c.editing && (
-        <CustomerModal
-          key={c.editing === "new" ? "new" : c.editing.id}
-          customer={c.editing === "new" ? null : c.editing}
-          onSave={c.save}
-          onClose={c.closeModal}
-        />
-      )}
     </>
   );
 };

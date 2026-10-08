@@ -3,18 +3,13 @@ import { ActionIcon, Box, Button, Group, Modal, ScrollArea, Tabs, Text, ThemeIco
 import { IconMinus } from "@tabler/icons-react";
 import type { BoxProps, ModalProps } from "@mantine/core";
 
-/* ───────────────────────── Tabs ───────────────────────── */
 export interface AppModalTab<T extends string = string> {
   value: T;
   label: string;
   icon?: ReactNode;
 }
 
-/* ───────────────────────── Footer ─────────────────────────
-   Cancel (left) | Reset · Next · Submit (right).
-   A button shows only when its handler is passed, so:
-   - last tab  -> don't pass onNext
-   - no reset  -> don't pass onReset                          */
+
 export interface AppModalFooterProps {
   onCancel: () => void;
   cancelLabel?: string;
@@ -71,36 +66,25 @@ export const AppModalFooter = ({
   </Group>
 );
 
-/* ───────────────────────── Modal ───────────────────────── */
 export interface AppModalProps<T extends string = string> {
   title: string;
   subtitle?: string;
-  /** icon shown in the header badge, e.g. <IconUsers size={22} /> */
   icon?: ReactNode;
-  /** called for X button / Esc. Pass your "unsaved changes" guard here. */
    onClose: () => void;
-  /** shows a minimize button in the header when passed */
   onMinimize?: () => void;
-  /** modals in this app are mounted conditionally, so default is true */
   opened?: boolean;
-  /** "md" | "xl" | "60rem" | 900 ... default "70rem" */
   size?: ModalProps["size"];
   fullScreen?: boolean;
   closeOnClickOutside?: boolean;
 
-  /** optional tab bar under the header */
   tabs?: AppModalTab<T>[];
   activeTab?: T;
   onTabChange?: (tab: T) => void;
 
-  /** usually <AppModalFooter ... />, or any custom node. Omit for no footer. */
   footer?: ReactNode;
 
-  /** body scrolls inside the modal (default true). Set false if your content scrolls itself. */
   scroll?: boolean;
-  /** max height of the scrolling body, default "60vh" */
   bodyMaxHeight?: string | number;
-  /** body padding (Mantine spacing key or css value), default "lg" */
   bodyPadding?: BoxProps["p"];
 
   children: ReactNode;
