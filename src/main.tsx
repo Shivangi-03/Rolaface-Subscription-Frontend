@@ -30,6 +30,7 @@ const theme = createTheme({
     Badge: { defaultProps: { radius: "sm" } },
     Button: { defaultProps: { fw: 600 } },
     Table: { defaultProps: { verticalSpacing: "md", highlightOnHover: true } },
+    NumberInput: { defaultProps: { hideControls: true } },
   },
 });
 
