@@ -1,5 +1,5 @@
-import { ActionIcon, Badge, Button, Group, Text, Tooltip } from "@mantine/core";
-import { IconBan, IconCircleCheck, IconEye, IconDownload, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react";
+import { ActionIcon, Badge, Button, Group, Menu, Text, Tooltip } from "@mantine/core";
+import { IconDots, IconEye, IconDownload, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react";
 import PageHeader from "../../components/PageHeader";
 import DataTable, { type Column } from "../../components/table";
 import { useCustomers } from "../../hooks/useCustomer";
@@ -57,21 +57,24 @@ const Customers = () => {
                 <IconEye size={18} />
               </ActionIcon>
             </Tooltip>
-            <Tooltip label={active ? "Inactive" : "Active"}>
-              <ActionIcon
-                variant="subtle"
-                color={active ? "orange" : "green"}
-                aria-label={`${active ? "Inactive" : "Active"} ${row.name}`}
-                onClick={() => c.toggleStatus(row)}
-              >
-                {active ? <IconBan size={18} /> : <IconCircleCheck size={18} />}
-              </ActionIcon>
-            </Tooltip>
             <Tooltip label="Delete">
               <ActionIcon variant="subtle" color="red" aria-label={`Delete ${row.name}`} onClick={() => c.remove(row)}>
                 <IconTrash size={18} />
               </ActionIcon>
             </Tooltip>
+            <Menu position="bottom-end" withinPortal>
+              <Menu.Target>
+                <ActionIcon variant="subtle" color="gray" aria-label={`More actions for ${row.name}`}>
+                  <IconDots size={18} />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item color={active ? "orange" : "green"} onClick={() => c.toggleStatus(row)}>
+                  {active ? "Set Inactive" : "Set Active"}
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+
           </Group>
         );
       },
