@@ -53,16 +53,10 @@ const money = (n: number) => formatMoney(n, plan?.currency);
 
         <Divider />
 
-        <div>
-          <Heading>Billing</Heading>
-          <Text fw={600}>
-           {plan ? `${plan.billing_frequency} • ${money(plan.base_price)}` : "-"}
-          </Text>
-        </div>
+
         <Row label="Start Date:" value={formatDate(v.startDate)} />
         <Row label="Expiry Date:" value={formatDate(v.expiryDate)} />
       <Row label="Trial:" value={plan ? (plan.trial_enabled ? `${plan.trial_days} Days Free Trial` : "No Trial") : "-"} />
-<Row label="Renewal:" value={plan ? (plan.renewal_mode === "Auto-renew" ? "Auto-renew" : `Fixed ${plan.billing_cycles} Cycles`) : "-"} />
 
         <Divider />
 

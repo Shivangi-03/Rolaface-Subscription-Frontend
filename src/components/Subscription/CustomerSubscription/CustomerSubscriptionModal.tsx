@@ -24,24 +24,24 @@ const Label = ({ label, children }: { label: string; children: React.ReactNode }
 );
 
 const PlanDetails = ({ plan, loading }: { plan: PlanDetail | null; loading: boolean }) => (
-  <Paper withBorder p="md" pos="relative">
+  <Paper withBorder p="sm" pos="relative">
     <LoadingOverlay visible={loading} />
-    <Group gap="sm" mb="sm">
-      <ThemeIcon variant="light" size={36} radius="md">
-        <IconLock size={18} />
+    <Group gap="sm" mb="xs">
+      <ThemeIcon variant="light" size={32} radius="md">
+        <IconLock size={16} />
       </ThemeIcon>
       <Text fw={700} tt="uppercase">
         Plan Details
       </Text>
     </Group>
-    <Divider mb="md" />
+    <Divider mb="sm" />
 
     {!plan ? (
       <Text size="sm" c="dimmed">
         Select a plan to see its price, trial, renewal and entitled modules.
       </Text>
     ) : (
-      <Stack gap="md">
+      <Stack gap="sm">
         <SimpleGrid cols={{ base: 1, sm: 3 }}>
           <Label label="Price">
             <Text fw={700} size="lg">
@@ -64,14 +64,14 @@ const PlanDetails = ({ plan, loading }: { plan: PlanDetail | null; loading: bool
         </SimpleGrid>
 
         <div>
-          <Text size="sm" fw={500} mb={6}>
+          <Text size="sm" fw={500} mb={4}>
             Entitled Products & Modules
           </Text>
           <SimpleGrid cols={{ base: 1, sm: 2 }}>
             {plan.products.map((code) => {
               const mods = plan.modules.filter((m) => m.product === code);
               return (
-                <Paper key={code} withBorder p="sm">
+                <Paper key={code} withBorder p="xs">
                   <Group justify="space-between" wrap="nowrap" mb={4}>
                     <Badge variant="light">{code}</Badge>
                     <Badge variant="light" color="blue">
@@ -92,26 +92,22 @@ const PlanDetails = ({ plan, loading }: { plan: PlanDetail | null; loading: bool
 );
 
 interface Props {
-    subscription: SubscriptionDetail | null;
-    modalId: string;
+  subscription: SubscriptionDetail | null;
+  modalId: string;
   onClose: () => void;
 }
 
-const SubscriptionFormModal = ({
-   subscription,
-  modalId,
-  onClose,
-}: Props) => {
-    const { form, number, saving, plan, planLoading, setPlan, setStart, submit, requestClose } = useSubscriptionForm({
-     subscription,
+const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
+  const { form, number, saving, plan, planLoading, setPlan, setStart, submit, requestClose } = useSubscriptionForm({
+    subscription,
     onClose,
   });
-   const { plans, customers } = useSubscriptionLookups();
+  const { plans, customers } = useSubscriptionLookups();
   const minimized = useModalStore((s) => s.modals.find((m) => m.id === modalId)?.minimized ?? false);
   const minimizeModal = useModalStore((s) => s.minimizeModal);
   const v = form.values;
 
-   const planOptions = plans.map((p) => ({ value: p.name, label: p.plan_name }));
+  const planOptions = plans.map((p) => ({ value: p.name, label: p.plan_name }));
   if (subscription && !planOptions.some((o) => o.value === subscription.plan)) {
     planOptions.push({ value: subscription.plan, label: subscription.plan_name });
   }
@@ -119,11 +115,10 @@ const SubscriptionFormModal = ({
   if (subscription && !customerOptions.some((o) => o.value === subscription.customer)) {
     customerOptions.push({ value: subscription.customer, label: `${subscription.customer_name} (${subscription.customer})` });
   }
-  console.log("modal", modalId, minimized);
 
   return (
     <Modal
-            opened={!minimized}
+      opened={!minimized}
       onClose={requestClose}
       centered
       size="70rem"
@@ -136,7 +131,7 @@ const SubscriptionFormModal = ({
         title: { flex: 1 },
       }}
       title={
-               <Group gap="sm" wrap="nowrap" w="100%">
+        <Group gap="sm" wrap="nowrap" w="100%">
           <ThemeIcon size={40} variant="white" color="gray" radius="md">
             <IconUserCheck size={22} />
           </ThemeIcon>
@@ -145,7 +140,7 @@ const SubscriptionFormModal = ({
               {subscription ? "Edit Subscription" : "Add Subscription"}
             </Text>
             <Text size="sm" opacity={0.85}>
-                          Assign customer & plan.
+              Assign customer & plan.
             </Text>
           </div>
           <ActionIcon variant="subtle" c="white" ml="auto" aria-label="Minimize" onClick={() => minimizeModal(modalId)}>
@@ -154,85 +149,82 @@ const SubscriptionFormModal = ({
         </Group>
       }
     >
-      <Grid p="lg" gutter="lg">
+      <Grid p="md" gutter="md">
         <Grid.Col span={{ base: 12, md: 8 }}>
-          <ScrollArea.Autosize mah="65vh" offsetScrollbars>
-            <Stack gap="md">
-              <Paper withBorder p="md">
-                <SimpleGrid cols={{ base: 1, sm: 3 }}>
-                  <Select
-                    label="Customer"
-                    required
-                    searchable
-                    placeholder="Select customer"
-                                       data={customerOptions}
-                    disabled={!!subscription}
-                    {...form.getInputProps("customerId")}
-                  />
-                  <Select
-                    label="Choose Plan"
-                    required
-                    searchable
-                                       placeholder="Select plan"
-                    disabled={!!subscription}
-                    nothingFoundMessage="No active plans found"
-                    data={planOptions}
-                    value={v.planId || null}
-                    onChange={setPlan}
-                    error={form.errors.planId}
-                  />
-                  <TextInput label="Subscription Number" value={number || "Auto-generated"} disabled />
-                </SimpleGrid>
-              </Paper>
+          <ScrollArea.Autosize mah="70vh" offsetScrollbars>
+            <Stack gap="sm">
+              {/* Customer · Plan · Subscription number (no card) */}
+              <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                <Select
+                  label="Customer"
+                  required
+                  searchable
+                  placeholder="Select customer"
+                  data={customerOptions}
+                  disabled={!!subscription}
+                  {...form.getInputProps("customerId")}
+                />
+                <Select
+                  label="Choose Plan"
+                  required
+                  searchable
+                  placeholder="Select plan"
+                  disabled={!!subscription}
+                  nothingFoundMessage="No active plans found"
+                  data={planOptions}
+                  value={v.planId || null}
+                  onChange={setPlan}
+                  error={form.errors.planId}
+                />
+                <TextInput label="Subscription Number" value={number || "Auto-generated"} disabled />
+              </SimpleGrid>
 
-                           <PlanDetails plan={plan} loading={planLoading} />
+              {/* Only this section keeps its card */}
+              <PlanDetails plan={plan} loading={planLoading} />
 
-              <Paper withBorder p="md">
-                <Stack gap="md">
-                  <SimpleGrid cols={{ base: 1, sm: 3 }}>
-                    <DateInput
-                      label="Start Date"
-                      required
-                      valueFormat={DATE_DISPLAY}
-                      rightSection={<IconCalendar size={16} />}
-                      value={v.startDate || null}
-                      onChange={setStart}
-                      error={form.errors.startDate}
-                    />
-                    <DateInput
-                      label="Expiry / Renewal Date"
-                      required
-                      valueFormat={DATE_DISPLAY}
-                      rightSection={<IconCalendar size={16} />}
-                      minDate={v.startDate || undefined}
-                      value={v.expiryDate || null}
-                      onChange={(d) => form.setFieldValue("expiryDate", d ?? "")}
-                      error={form.errors.expiryDate}
-                    />
-                    <NumberInput
-                      label="Discount Amount"
-                      placeholder="0"
-                      min={0}
-                      decimalScale={2}
-                      {...form.getInputProps("discount")}
-                    />
-                  </SimpleGrid>
-                  <Textarea
-                    label="Subscription Notes / Commercial Terms"
-                    placeholder="Add any operational or commercial contract notes..."
-                    minRows={4}
-                    autosize
-                    maxLength={500}
-                    {...form.getInputProps("notes")}
-                  />
-                </Stack>
-              </Paper>
+              {/* Dates · Discount · Description (no card) */}
+              <SimpleGrid cols={{ base: 1, sm: 3 }}>
+                <DateInput
+                  label="Start Date"
+                  required
+                  valueFormat={DATE_DISPLAY}
+                  rightSection={<IconCalendar size={16} />}
+                  value={v.startDate || null}
+                  onChange={setStart}
+                  error={form.errors.startDate}
+                />
+                <DateInput
+                  label="Expiry / Renewal Date"
+                  required
+                  valueFormat={DATE_DISPLAY}
+                  rightSection={<IconCalendar size={16} />}
+                  minDate={v.startDate || undefined}
+                  value={v.expiryDate || null}
+                  onChange={(d) => form.setFieldValue("expiryDate", d ?? "")}
+                  error={form.errors.expiryDate}
+                />
+                <NumberInput
+                  label="Discount Amount"
+                  placeholder="0"
+                  min={0}
+                  decimalScale={2}
+                  {...form.getInputProps("discount")}
+                />
+              </SimpleGrid>
+              <Textarea
+                label="Description"
+                placeholder="Add any operational or commercial contract notes..."
+                minRows={2}
+                autosize
+                maxLength={500}
+                {...form.getInputProps("notes")}
+              />
             </Stack>
           </ScrollArea.Autosize>
         </Grid.Col>
 
         <Grid.Col span={{ base: 12, md: 4 }}>
-                   <SubscriptionSummary values={v} plan={plan} customers={customers} />
+          <SubscriptionSummary values={v} plan={plan} customers={customers} />
         </Grid.Col>
       </Grid>
 
