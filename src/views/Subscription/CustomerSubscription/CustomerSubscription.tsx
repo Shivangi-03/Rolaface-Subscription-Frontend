@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { ActionIcon, Badge, Button, Group, Menu, Text } from "@mantine/core";
-import { IconBan, IconCircleCheck, IconDotsVertical, IconDownload, IconEdit, IconStack2 } from "@tabler/icons-react";
+import { IconBan, IconCircleCheck, IconDotsVertical, IconDownload, IconEdit, IconStack2, IconTrash } from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import CancelSubscriptionModal from "../../../components/Subscription/CustomerSubscription/cancelSubscriptionModal";
@@ -53,7 +53,7 @@ const isCancelled = (s: ApiSubscription) => s.status.toLowerCase() === "cancelle
 const isDraft = (s: ApiSubscription) => s.status?.toLowerCase() === "draft";
 
 const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
-  const { list, openCreate, openEdit, opening, submittingId, openSubmit, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel } = useSubscriptions();
+  const { list, openCreate, openEdit, opening, submittingId, openSubmit, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel, remove, deletingId } = useSubscriptions();
   const columns: Column<ApiSubscription>[] = [
     ...COLUMNS.map((c) => ({
       key: c.key,
@@ -62,7 +62,8 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
     })),
     {
       key: "actions",
-      header: "Actions",
+           header: "Actions",
+      width: 150,
       align: "right",
       render: (s) =>
       (
@@ -74,7 +75,17 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
             onClick={() => openEdit(s)}
             aria-label={`Edit ${s.name}`}
           >
-            <IconEdit size={18} />
+                      <IconEdit size={18} />
+          </ActionIcon>
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            loading={deletingId === s.name}
+            disabled={!(isDraft(s) || isCancelled(s))}
+            onClick={() => remove(s)}
+            aria-label={`Delete ${s.name}`}
+          >
+            <IconTrash size={18} />
           </ActionIcon>
           <Menu position="bottom-end" withinPortal>
             <Menu.Target>
