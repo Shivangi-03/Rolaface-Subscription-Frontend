@@ -68,9 +68,9 @@ const changeStatus = (p: Plan) => {
   if (busyId) return;
   const activating = p.status !== "active";
   openCommonModal({
-    heading: activating ? "Activate Plan" : "Inactive Plan",
+    heading: activating ? "Activate Plan" : "Mark as Inactive",
     subtitle: "Please confirm your action.",
-    body: `Plan "${p.name}" will be ${activating ? "activated" : "Inactived"}.`,
+    body: `Plan "${p.name}" will be marked as ${activating ? "Active" : "Inactive"}.`,
     color: activating ? "green" : "red",
     buttons: [
       { label: "Cancel", variant: "default" },

@@ -1,12 +1,10 @@
 import type { ReactNode } from "react";
 import { ActionIcon, Badge, Button, Group, Menu, Text } from "@mantine/core";
-import { IconBan, IconDotsVertical, IconEdit, IconStack2 } from "@tabler/icons-react";
-import { notifyInfo } from "../../../utils/Alert";
+import { IconBan, IconDotsVertical, IconDownload, IconEdit, IconStack2 } from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import CancelSubscriptionModal from "../../../components/Subscription/CustomerSubscription/cancelSubscriptionModal";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
+import { useSubscriptionsExport } from "../../../hooks/useSubscriptionExport";
 
 import { useSubscriptions } from "../../../hooks/useSubscriptions";
 import { formatMoney } from "../../../views/Subscription/Plan/plan.constants";
@@ -94,39 +92,7 @@ const { list, openCreate, openEdit, opening, cancelTarget, cancelling, openCance
     },
   ];
 
-  const handleExport = () => {
-    const rows = list.rows;
-    if (!rows.length) {
-      notifyInfo("No subscriptions to export", "Export");
-      return;
-    }
-
-    const worksheet = XLSX.utils.json_to_sheet(
-      rows.map((s) => ({
-        "Subscription No": s.name,
-        Customer: s.customer_name,
-        "Customer ID": s.customer,
-        Plan: s.plan_name,
-        Billing: s.billing_frequency,
-        "Renewal Mode": s.renewal_mode,
-        "Period Start": formatDate(s.current_period_start),
-        "Period End": formatDate(s.current_period_end),
-        Currency: s.currency,
-        Total: s.grand_total,
-        Status: s.status,
-      })),
-    );
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Subscriptions");
-
-    saveAs(
-      new Blob([XLSX.write(workbook, { bookType: "xlsx", type: "array" })], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      }),
-      "Subscriptions.xlsx",
-    );
-  };
+    const exp = useSubscriptionsExport(list.filters.search);
 
   return (
     <>
@@ -151,7 +117,13 @@ const { list, openCreate, openEdit, opening, cancelTarget, cancelling, openCance
         addLabel="Add Subscription"
         onAdd={openCreate}
             primaryAction={
-          <Button variant="default" onClick={handleExport}>
+                   <Button
+            variant="default"
+            leftSection={<IconDownload size={16} />}
+            onClick={exp.exportAll}
+            loading={exp.exporting}
+            disabled={list.loading || list.total === 0}
+          >
             Export
           </Button>
         }

@@ -1,7 +1,7 @@
 
 import type { ReactNode } from "react";
 import { ActionIcon, Badge, Button, Group, Menu, Text } from "@mantine/core";
-import { IconDots, IconEdit, IconStack2 } from "@tabler/icons-react";
+import { IconDots, IconDownload, IconEdit, IconStack2 } from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import ProductBadges from "../../../components/ProductBadges";
@@ -9,9 +9,8 @@ import { usePlans } from "../../../hooks/usePlans";
 import { usePlanCatalog } from "../../../hooks/usePlanCatalog";
 import { BILLING_LABEL, BILLING_SUFFIX, COLUMNS, PRICING_LABEL, formatMoney } from "./plan.constants";
 import type { ColumnKey, Plan, ProductDef } from "../../../types/plan.types";
-import AppAlert, { notifyInfo } from "../../../utils/Alert";
-import * as XLSX from "xlsx";
-import { saveAs } from "file-saver";
+import AppAlert from "../../../utils/Alert";
+import { usePlansExport } from "../../../hooks/usePlanExport";
 
 const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> = {
   name: (p) => (
@@ -86,38 +85,7 @@ const { list, openCreate, openEdit, busyId, changeStatus, loading } = usePlans()
     },
   ];
 
-  const handleExport = () => {
-    const rows = list.rows;
-    if (!rows.length) {
-      notifyInfo("No plans to export", "Export");
-      return;
-    }
-
-    const worksheet = XLSX.utils.json_to_sheet(
-      rows.map((p) => ({
-        "Plan Name": p.name,
-        "Plan Code": p.code,
-        Products: Array.isArray(p.products) ? p.products.join(", ") : "",
-        Billing: BILLING_LABEL[p.billingFrequency],
-        "Pricing Model": PRICING_LABEL[p.pricingModel],
-        Currency: p.currency,
-        Price: p.price,
-        "Trial Days": p.trialDays ?? 0,
-        Status: p.status,
-      })),
-    );
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Plans");
-
-    saveAs(
-      new Blob([XLSX.write(workbook, { bookType: "xlsx", type: "array" })], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      }),
-      "Plans.xlsx",
-    );
-  };
-
+  const exp = usePlansExport(list.filters.search);
   return (
     <>
       {!embedded && (
@@ -147,9 +115,12 @@ const { list, openCreate, openEdit, busyId, changeStatus, loading } = usePlans()
         addLabel="Add Plan"
         onAdd={openCreate}
         primaryAction={
-          <Button
+                  <Button
             variant="default"
-                      onClick={handleExport}
+            leftSection={<IconDownload size={16} />}
+            onClick={exp.exportAll}
+            loading={exp.exporting}
+            disabled={loading || list.total === 0}
           >
             Export
           </Button>
