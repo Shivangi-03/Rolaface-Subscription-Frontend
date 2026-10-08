@@ -6,6 +6,7 @@ import { useModalStore } from "../store/modalstore";
 import { REFRESH_KEYS, useDataRefreshStore } from "../store/datarefreshstore";
 import type { ColumnKey, Plan, PlanDetail, PlanListItem } from "../types/plan.types";
 import { getAllPlans, getPlanById, updatePlanStatus } from "../api/planAPi";
+import { deletedoc } from "../api/utils/frappeApi";
 import { useDebouncedValue } from "@mantine/hooks";
 
 const match = (_p: Plan, _f: ListFilters) => true;
@@ -97,6 +98,35 @@ const changeStatus = (p: Plan) => {
   });
 };
 
+const remove = (p: Plan) => {
+  if (busyId) return;
+  openCommonModal({
+    heading: "Delete Plan",
+    subtitle: "This action cannot be undone.",
+    body: `Plan "${p.name}" will be permanently deleted.`,
+    color: "red",
+    buttons: [
+      { label: "Cancel", variant: "default" },
+      {
+        label: "Delete",
+        color: "red",
+        onClick: async () => {
+          setBusyId(p.id);
+          try {
+            await deletedoc("Custom Plan", String(p.id)); // use p.code if that holds the doc name
+            notifySuccess(`Plan "${p.name}" has been deleted successfully.`, "Plan Deleted");
+            reload();
+          } catch (err) {
+            notifyError(err, "Couldn't delete plan");
+          } finally {
+            setBusyId(null);
+          }
+        },
+      },
+    ],
+  });
+};
+
 const toggleColumn = (key: ColumnKey) =>
     setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
 
@@ -109,6 +139,7 @@ reload,
     openCreate: () => openModal({ type: "plan", id: "plan-new", title: "Add Plan" }),
    openEdit,
 changeStatus,
+remove,
 busyId,
   };
 }

@@ -58,6 +58,12 @@ export const API = {
     submit: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.submit`
   },
 
+     /* =========================
+   * frappe Api
+   * ========================= */
+  frappe:{
+    delete: `${ERP_BASE}/api/method/frappe.client.delete`
+  }
 
 
 } as const;

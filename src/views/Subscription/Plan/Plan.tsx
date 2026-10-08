@@ -1,7 +1,7 @@
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ActionIcon, Badge, Button, Group, Menu, Text } from "@mantine/core";
-import { IconDots, IconDownload, IconEdit, IconStack2 } from "@tabler/icons-react";
+import { IconDots, IconDownload, IconEdit, IconEye, IconStack2,IconTrash} from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import ProductBadges from "../../../components/ProductBadges";
@@ -11,6 +11,7 @@ import { BILLING_LABEL, BILLING_SUFFIX, COLUMNS, PRICING_LABEL, formatMoney } fr
 import type { ColumnKey, Plan, ProductDef } from "../../../types/plan.types";
 import AppAlert from "../../../utils/Alert";
 import { usePlansExport } from "../../../hooks/usePlanExport";
+import PlanDetailView from "./planDetailVIew";
 
 const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> = {
   name: (p) => (
@@ -49,9 +50,12 @@ const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> =
 ),
 };
 
+const isDraft = (p: Plan) => p.status?.toLowerCase() === "draft";
+
 const Plans = ({ embedded = false }: { embedded?: boolean }) => {
-const { list, openCreate, openEdit, busyId, changeStatus, loading } = usePlans();
-  const catalog = usePlanCatalog(); 
+const { list, openCreate, openEdit, busyId, changeStatus, remove, loading } = usePlans();
+const catalog = usePlanCatalog();
+  const [viewId, setViewId] = useState<string | number | null>(null);
   const columns: Column<Plan>[] = [
     ...COLUMNS.map((c) => ({
       key: c.key,
@@ -61,12 +65,29 @@ const { list, openCreate, openEdit, busyId, changeStatus, loading } = usePlans()
     {
       key: "actions",
       header: "Actions",
-      width: 120,
+                  width: 180,
       align: "right",
       render: (plan: Plan) => (
         <Group gap={4} justify="flex-end" wrap="nowrap">
-          <ActionIcon variant="subtle" loading={busyId === plan.id} onClick={() => openEdit(plan)} aria-label={`Edit ${plan.name}`}>
-            <IconEdit size={18} />
+                   <ActionIcon
+            variant="subtle"
+            loading={busyId === plan.id}
+            disabled={!isDraft(plan)}
+            onClick={() => openEdit(plan)}
+            aria-label={`Edit ${plan.name}`}
+          >
+                       <IconEdit size={18} />
+          </ActionIcon>
+          <ActionIcon variant="subtle" color="blue" onClick={() => setViewId(plan.id)} aria-label={`View ${plan.name}`}>
+                        <IconEye size={18} />
+          </ActionIcon>
+          <ActionIcon
+            variant="subtle"
+            color="red"
+            onClick={() => remove(plan)}
+            aria-label={`Delete ${plan.name}`}
+          >
+            <IconTrash size={18} />
           </ActionIcon>
           <Menu position="bottom-end" withinPortal>
             <Menu.Target>
@@ -85,7 +106,27 @@ const { list, openCreate, openEdit, busyId, changeStatus, loading } = usePlans()
     },
   ];
 
-  const exp = usePlansExport(list.filters.search);
+    const exp = usePlansExport(list.filters.search);
+
+  if (viewId !== null) {
+    return (
+      <PlanDetailView
+        planId={viewId}
+        onBack={() => setViewId(null)}
+              onEdit={
+          isDraft(list.rows.find((r) => r.id === viewId) as Plan)
+            ? () => {
+                const p = list.rows.find((r) => r.id === viewId);
+                if (p) {
+                  setViewId(null);
+                  openEdit(p);
+                }
+              }
+            : undefined
+        }
+      />
+    );
+  }
   return (
     <>
       {!embedded && (
@@ -99,6 +140,7 @@ const { list, openCreate, openEdit, busyId, changeStatus, loading } = usePlans()
      {catalog.status === "error" && (
   <AppAlert title="Couldn't load products" message={catalog.error?.message ?? "Something went wrong."} onRetry={catalog.reload} mb="md" />
 )}
+
 
       <DataTable
         columns={columns}
@@ -129,8 +171,9 @@ const { list, openCreate, openEdit, busyId, changeStatus, loading } = usePlans()
         pageSize={list.pageSize}
         totalItems={list.total}
         onPageChange={list.setPage}
-        onPageSizeChange={list.setPageSize}
+               onPageSizeChange={list.setPageSize}
       />
+
     
     </>
   );

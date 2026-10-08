@@ -14,9 +14,12 @@ import type {
     ApiSubscription,
   SubscriptionColumnKey,
 } from "../types/subscription.types";
+import { deletedoc } from "../api/utils/frappeApi";
+
 
 
 export function useSubscriptions() {
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [rows, setRows] = useState<ApiSubscription[]>([]);
 const [total, setTotal] = useState(0);
 const [page, setPage] = useState(1);
@@ -127,7 +130,38 @@ setPage(1);
 
   const toggleColumn =(key: SubscriptionColumnKey) =>
     setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
+  const remove = (s: ApiSubscription) => {
+    if (deletingId) return;
+    openCommonModal({
+      heading: "Delete Subscription",
+      subtitle: "This action cannot be undone.",
+      body: `Subscription "${s.name}" will be permanently deleted.`,
+      color: "red",
+      buttons: [
+        { label: "Cancel", variant: "default" },
+        {
+          label: "Delete",
+          color: "red",
+          onClick: async () => {
+            setDeletingId(s.name);
+            try {
+              await deletedoc("Custom Subscription", s.name);
+              notifySuccess(`Subscription "${s.name}" has been deleted successfully.`, "Subscription Deleted");
+              triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST);
+            } catch (err) {
+              notifyError(err, "Couldn't delete subscription");
+            } finally {
+              setDeletingId(null);
+            }
+          },
+        },
+      ],
+    });
+  };
+
   return {
+        remove,
+    deletingId,
     list,
 
     visible,
