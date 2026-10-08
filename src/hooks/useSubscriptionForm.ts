@@ -133,6 +133,7 @@ export function useSubscriptionForm({ subscription, onClose }: Options) {
     if (subscription) {
       const v = form.values;
       const changes: Omit<SubscriptionUpdatePayload, "id"> = {
+        ...(v.planId !== subscription.plan && { plan: v.planId }),
         ...(num(v.discount) !== num(subscription.discount_amount) && { discount_amount: num(v.discount) }),
         ...((v.notes ?? "") !== (subscription.notes ?? "") && { notes: v.notes }),
         ...(v.startDate !== subscription.start_date && { start_date: dayjs(v.startDate).format("YYYY-MM-DD") }),

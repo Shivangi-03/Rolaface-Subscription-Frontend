@@ -44,3 +44,8 @@ export async function cancelSubscription(payload: SubscriptionCancelPayload): Pr
   const resp: AxiosResponse = await api.put(SubscriptionAPI.cancel, payload);
   return resp.data;
 }
+
+export async function submitSubscription(id: string): Promise<any> {
+  const resp: AxiosResponse = await api.put(SubscriptionAPI.submit, { id });
+  return resp.data;
+}

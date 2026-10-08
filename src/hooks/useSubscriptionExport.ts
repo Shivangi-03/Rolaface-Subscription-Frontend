@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import dayjs from "dayjs";
 import { getAllSubscriptions } from "../api/Subscription/subscriptionApi"; 
 import { notifyError, notifySuccess } from "../utils/Alert";
-import { formatDate } from "../views/Subscription/CustomerSubscription/subscription.constants"; // TODO: fix path
+import { formatDate } from "../views/Subscription/CustomerSubscription/subscription.constants"; 
 import type { ApiSubscription } from "../types/subscription.types";
 
 const EXPORT_PAGE_SIZE = 100;

@@ -1,7 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState , useRef } from "react";
 import { useDebouncedValue } from "@mantine/hooks";
-import { notifyError, notifySuccess } from "../utils/Alert";
-import { cancelSubscription, getAllSubscriptions, getSubscriptionById } from "../api/Subscription/subscriptionApi";
+import { notifyError, notifySuccess, openCommonModal } from "../utils/Alert";
+import {
+  cancelSubscription,
+  getAllSubscriptions,
+  getSubscriptionById,
+  submitSubscription,
+} from "../api/Subscription/subscriptionApi";
 import { useModalStore } from "../store/modalstore";
 import { REFRESH_KEYS, useDataRefreshStore } from "../store/datarefreshstore";
 import { COLUMNS } from "../views/Subscription/CustomerSubscription/subscription.constants";
@@ -9,6 +14,7 @@ import type {
     ApiSubscription,
   SubscriptionColumnKey,
 } from "../types/subscription.types";
+
 
 export function useSubscriptions() {
   const [rows, setRows] = useState<ApiSubscription[]>([]);
@@ -20,7 +26,8 @@ const [loading, setLoading] = useState(false);
 const reload = useDataRefreshStore((s) => s.ticks[REFRESH_KEYS.SUBSCRIPTION_LIST] ?? 0);
 const triggerRefresh = useDataRefreshStore((s) => s.triggerRefresh);
 const openModal = useModalStore((s) => s.openModal);
-
+const [submittingId, setSubmittingId] = useState<string | null>(null);
+const submitLock = useRef(false);
 const [debouncedSearch] = useDebouncedValue(filters.search, 400);
 const [opening, setOpening] = useState<string | null>(null);
 const [cancelTarget, setCancelTarget] = useState<ApiSubscription | null>(null);
@@ -87,6 +94,37 @@ setPage(1);
     }
   };
 
+  const openSubmit = (s: ApiSubscription) => {
+  openCommonModal({
+    heading: "Submit Subscription",
+    subtitle: "This action cannot be undone.",
+    body: `Submit ${s.name} for ${s.customer_name}? Once submitted, it can no longer be edited.`,
+    color: "green",
+    buttons: [
+      { label: "Cancel", variant: "default" },
+      {
+        label: "Submit",
+        color: "green",
+        onClick: async () => {
+          if (submitLock.current) return; // block double clicks
+          submitLock.current = true;
+          setSubmittingId(s.name);
+          try {
+            await submitSubscription(s.name);
+            notifySuccess(`Subscription ${s.name} has been submitted successfully.`, "Subscription Submitted");
+            triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST);
+          } catch (err) {
+            notifyError(err, "Failed to submit subscription");
+          } finally {
+            submitLock.current = false;
+            setSubmittingId(null);
+          }
+        },
+      },
+    ],
+  });
+};
+
   const toggleColumn =(key: SubscriptionColumnKey) =>
     setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
   return {
@@ -96,6 +134,8 @@ setPage(1);
     toggleColumn,
     openCreate: () => openModal({ type: "subscription", id: "subscription-new", title: "Add Subscription" }),
     opening,
+    submittingId,
+    openSubmit,
     cancelTarget,
     cancelling,
     openCancel: setCancelTarget,

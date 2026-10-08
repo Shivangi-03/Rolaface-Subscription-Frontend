@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { ActionIcon, Badge, Button, Group, Menu, Text } from "@mantine/core";
-import { IconBan, IconDotsVertical, IconDownload, IconEdit, IconStack2 } from "@tabler/icons-react";
+import { IconBan, IconCircleCheck, IconDotsVertical, IconDownload, IconEdit, IconStack2 } from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import CancelSubscriptionModal from "../../../components/Subscription/CustomerSubscription/cancelSubscriptionModal";
@@ -14,7 +14,7 @@ import type { ApiSubscription, SubscriptionColumnKey } from "../../../types/subs
 const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = {
   number: (s) => (
     <Text size="sm" fw={600} ff="monospace">
-          {s.name}
+      {s.name}
     </Text>
   ),
   customer: (s) => (
@@ -50,11 +50,12 @@ const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = 
 };
 
 const isCancelled = (s: ApiSubscription) => s.status.toLowerCase() === "cancelled";
+const isDraft = (s: ApiSubscription) => s.status?.toLowerCase() === "draft";
 
 const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
-const { list, openCreate, openEdit, opening, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel } = useSubscriptions();
+  const { list, openCreate, openEdit, opening, submittingId, openSubmit, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel } = useSubscriptions();
   const columns: Column<ApiSubscription>[] = [
-        ...COLUMNS.map((c) => ({
+    ...COLUMNS.map((c) => ({
       key: c.key,
       header: c.label,
       render: CELLS[c.key],
@@ -64,46 +65,57 @@ const { list, openCreate, openEdit, opening, cancelTarget, cancelling, openCance
       header: "Actions",
       align: "right",
       render: (s) =>
-               (
-                      <Group gap={4} justify="flex-end" wrap="nowrap">
-            <ActionIcon
-              variant="subtle"
-              loading={opening === s.name}
-              disabled={isCancelled(s)}
-              onClick={() => openEdit(s)}
-              aria-label={`Edit ${s.name}`}
-            >
-              <IconEdit size={18} />
-            </ActionIcon>
-            <Menu position="bottom-end" withinPortal>
-              <Menu.Target>
-               <ActionIcon variant="subtle" disabled={isCancelled(s)} aria-label={`More actions for ${s.name}`}>
-                  <IconDotsVertical size={18} />
-                </ActionIcon>
-              </Menu.Target>
-              <Menu.Dropdown>
+      (
+        <Group gap={4} justify="flex-end" wrap="nowrap">
+          <ActionIcon
+            variant="subtle"
+            loading={opening === s.name}
+            disabled={!isDraft(s)}
+            onClick={() => openEdit(s)}
+            aria-label={`Edit ${s.name}`}
+          >
+            <IconEdit size={18} />
+          </ActionIcon>
+          <Menu position="bottom-end" withinPortal>
+            <Menu.Target>
+              <ActionIcon
+                variant="subtle"
+                loading={submittingId === s.name}
+                disabled={isCancelled(s)}
+                aria-label={`More actions for ${s.name}`}
+              >
+                <IconDotsVertical size={18} />
+              </ActionIcon>
+            </Menu.Target>
+            <Menu.Dropdown>
+              {isDraft(s) ? (
+                <Menu.Item color="green" leftSection={<IconCircleCheck size={16} />} onClick={() => openSubmit(s)}>
+                  Submit
+                </Menu.Item>
+              ) : (
                 <Menu.Item color="red" leftSection={<IconBan size={16} />} onClick={() => openCancel(s)}>
                   Cancel
                 </Menu.Item>
-              </Menu.Dropdown>
-            </Menu>
-          </Group>
-       ),
+              )}
+            </Menu.Dropdown>
+          </Menu>
+        </Group>
+      ),
     },
   ];
 
-    const exp = useSubscriptionsExport(list.filters.search);
+  const exp = useSubscriptionsExport(list.filters.search);
 
   return (
     <>
-       {!embedded && (
+      {!embedded && (
         <PageHeader
           icon={<IconStack2 size={24} />}
           title="Subscription"
           subtitle="Manage plans, pricing schedules and module entitlements"
         />
       )}
-            <DataTable<ApiSubscription>
+      <DataTable<ApiSubscription>
         columns={columns}
         data={list.rows}
         rowKey={(s) => s.name}
@@ -116,8 +128,8 @@ const { list, openCreate, openEdit, opening, cancelTarget, cancelling, openCance
         enableAdd
         addLabel="Add Subscription"
         onAdd={openCreate}
-            primaryAction={
-                   <Button
+        primaryAction={
+          <Button
             variant="default"
             leftSection={<IconDownload size={16} />}
             onClick={exp.exportAll}
@@ -134,7 +146,7 @@ const { list, openCreate, openEdit, opening, cancelTarget, cancelling, openCance
         onPageSizeChange={list.setPageSize}
       />
 
-            {cancelTarget && (
+      {cancelTarget && (
         <CancelSubscriptionModal
           key={cancelTarget.name}
           subscription={cancelTarget}

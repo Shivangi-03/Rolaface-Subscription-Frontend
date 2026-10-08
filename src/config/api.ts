@@ -55,6 +55,7 @@ export const API = {
     getById: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.get_by_id`,
     update: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.update`,
     cancel: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.cancel`,
+    submit: `${ERP_BASE}/api/method/rolaface_subscription.modules.subscription.subscription.submit`
   },
 
 

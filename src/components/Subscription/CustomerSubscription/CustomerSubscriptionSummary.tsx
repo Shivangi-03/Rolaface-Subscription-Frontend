@@ -37,7 +37,7 @@ const money = (n: number) => formatMoney(n, plan?.currency);
     <Paper withBorder style={{ overflow: "hidden" }}>
       <Box p="md" bg="var(--mantine-primary-color-filled)" c="white">
         <Text fw={700} size="lg">
-          Subscription Summary
+          Summary
         </Text>
       </Box>
 

@@ -169,7 +169,6 @@ const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
                   required
                   searchable
                   placeholder="Select plan"
-                  disabled={!!subscription}
                   nothingFoundMessage="No active plans found"
                   data={planOptions}
                   value={v.planId || null}
@@ -179,10 +178,8 @@ const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
                 <TextInput label="Subscription Number" value={number || "Auto-generated"} disabled />
               </SimpleGrid>
 
-              {/* Only this section keeps its card */}
               <PlanDetails plan={plan} loading={planLoading} />
 
-              {/* Dates · Discount · Description (no card) */}
               <SimpleGrid cols={{ base: 1, sm: 3 }}>
                 <DateInput
                   label="Start Date"
