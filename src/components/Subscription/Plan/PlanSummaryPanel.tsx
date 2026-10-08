@@ -43,18 +43,10 @@ const PlanSummary = ({ values: v, catalog = EMPTY_CATALOG }: Props) => {
         <Text fw={700} size="lg" truncate>
           {v.name.trim() || "Untitled Plan"}
         </Text>
-        {v.products.length > 0 && (
-          <Group gap="xs" mt={6}>
-            <ProductBadges products={v.products} catalog={catalog.products} />
-          </Group>
-        )}
       </Box>
 
       <Stack p="md" gap="sm">
         <div>
-          <Text size="sm" c="dimmed">
-            Estimated rate
-          </Text>
           <Text fw={700} size="xl">
             {formatMoney(rate, v.currency )}{" "}
             <Text span size="sm" c="dimmed" fw={400}>
@@ -81,8 +73,6 @@ const PlanSummary = ({ values: v, catalog = EMPTY_CATALOG }: Props) => {
         <Divider />
         <Row label="User Limit" value={v.userLimit === "" ? "Not set" : String(v.userLimit)} />
         <Row label="Trial Period" value={v.freeTrial ? `${num(v.trialDays)} Days` : "No Trial"} />
-        <Row label="Renewal Mode" value={v.renewalMode === "auto" ? "Auto-renew" : `Fixed (${num(v.cycles)} cycles)`} />
-        <Row label="Pricing Model" value={PRICING_LABEL[v.pricingModel]} />
       </Stack>
     </Paper>
   );

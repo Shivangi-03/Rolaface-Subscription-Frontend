@@ -1,4 +1,4 @@
-import { Badge, Checkbox, Group, Input, NumberInput, SegmentedControl, SimpleGrid, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import { Badge, Box, Checkbox, Group, Input, NumberInput, Stack, Text, TextInput, Textarea, useMatches } from "@mantine/core";
 import CatalogGate from "../Plan/Cataloggate";
 import type { PlanCatalog, PlanForm, ProductCode } from "../../../types/plan.types";
 
@@ -15,6 +15,11 @@ const BasicInfoTab = ({ form, catalog }: Props) => {
     form.setFieldValue("modules", checked ? Array.from(new Set([...modules, ...ids])) : modules.filter((m) => !ids.includes(m)));
   };
 
+  const fieldColumns = useMatches({
+    base: "minmax(0, 1fr)",
+    sm: "minmax(0, 2fr) minmax(0, 1fr) 130px",
+  });
+
   return (
     <Stack gap="md">
       <Input.Wrapper label="Products" required error={form.errors.products}>
@@ -24,18 +29,18 @@ const BasicInfoTab = ({ form, catalog }: Props) => {
               {catalog.products.map((p) => {
                 const checked = form.values.products.includes(p.code);
                 return (
-<Checkbox.Card key={p.code} radius="md" p="xs" style={{ flex: "1 1 0", minWidth: 0 }} checked={checked} onClick={() => toggleProduct(p.code, !checked)}>
+                  <Checkbox.Card key={p.code} radius="md" p="xs" style={{ flex: "1 1 0", minWidth: 0 }} checked={checked} onClick={() => toggleProduct(p.code, !checked)}>
                     <Group wrap="nowrap" align="flex-start" gap="xs">
                       <Checkbox.Indicator />
                       <div>
                         <Badge variant="light" color={p.color} mb={4}>
                           {p.code}
                         </Badge>
-                       <Text size="xs" truncate>{p.name}</Text>
+                        <Text size="xs" truncate>{p.name}</Text>
                         {p.description && (
-                        <Text size="xs" c="dimmed" lineClamp={2}>
-{p.description}
-</Text>
+                          <Text size="xs" c="dimmed" lineClamp={2}>
+                            {p.description}
+                          </Text>
                         )}
                       </div>
                     </Group>
@@ -47,18 +52,24 @@ const BasicInfoTab = ({ form, catalog }: Props) => {
         </div>
       </Input.Wrapper>
 
-      <SimpleGrid cols={{ base: 1, sm: 3 }}>
+      <Box
+        style={{
+          display: "grid",
+          gridTemplateColumns: fieldColumns,
+          gap: "var(--mantine-spacing-md)",
+          alignItems: "start",
+        }}
+      >
         <TextInput
           label="Plan Name"
           placeholder="e.g. Enterprise Core & Lending Bundle"
           required
           maxLength={100}
-          style={{ gridColumn: "span 1" }}
           {...form.getInputProps("name")}
         />
-    <TextInput label="Plan Code" placeholder="Auto-generated" maxLength={40} disabled {...form.getInputProps("code")} />
+        <TextInput label="Plan Code" placeholder="Auto-generated" maxLength={40} disabled {...form.getInputProps("code")} />
         <NumberInput label="User Limit" placeholder="e.g. 25" min={1} allowDecimal={false} {...form.getInputProps("userLimit")} />
-      </SimpleGrid>
+      </Box>
 
       <Textarea
         label="Description"
