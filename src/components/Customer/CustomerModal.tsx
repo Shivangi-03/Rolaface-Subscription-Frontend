@@ -22,14 +22,17 @@ const TABS = CUSTOMER_TABS.map((t) => {
 interface Props {
   modalId: string;
   customer: CustomerDetail | null;
+  /** View mode: all fields disabled, no Reset / Save. */
+  readOnly?: boolean;
   onClose: () => void;
 }
 
-const CustomerModal = ({ customer, modalId, onClose }: Props) => {
+const CustomerModal = ({ customer, modalId, readOnly = false, onClose }: Props) => {
   const initial = useMemo(() => (customer ? mapDetailToForm(customer) : undefined), [customer]);
   const { form, tab, setTab, isLast, saving, next, reset, submit, requestClose } = useCustomerForm({
     initial,
     customer,
+    readOnly,
     onClose,
   });
   const v = form.values;
@@ -38,15 +41,21 @@ const CustomerModal = ({ customer, modalId, onClose }: Props) => {
 
   const currency = useCurrencySelect(v.currency);
 
-  // Details grid: [Name | Email | Currency(small)] / [Phone | Website]. 1 column on small screens.
   const detailsColumns = useMatches({ base: "minmax(0, 1fr)", sm: "minmax(0, 1fr) minmax(0, 1fr) 150px" });
+
+  const title = readOnly ? "View Customer" : customer ? "Edit Customer" : "Add Customer";
+  const subtitle = readOnly
+    ? "View customer information"
+    : customer
+      ? "Edit and manage customer information"
+      : "Fill in the details to add a new customer";
 
   return (
     <AppModal
       size="60rem"
       icon={<IconUsers size={22} />}
-      title={customer ? "Edit Customer" : "Add Customer"}
-      subtitle={customer ? "Edit and manage customer information" : "Fill in the details to add a new customer"}
+      title={title}
+      subtitle={subtitle}
       onClose={requestClose}
       opened={!minimized}
       onMinimize={() => minimizeModal(modalId)}
@@ -56,9 +65,10 @@ const CustomerModal = ({ customer, modalId, onClose }: Props) => {
       footer={
         <AppModalFooter
           onCancel={requestClose}
-          onReset={reset}
+          cancelLabel={readOnly ? "Close" : "Cancel"}
+          onReset={readOnly ? undefined : reset}
           onNext={isLast ? undefined : next}
-          onSubmit={submit}
+          onSubmit={readOnly ? undefined : submit}
           saving={saving}
           submitLabel={customer ? "Save Changes" : "Create Customer"}
         />
@@ -80,6 +90,7 @@ const CustomerModal = ({ customer, modalId, onClose }: Props) => {
               withAsterisk
               placeholder="Enter full name"
               {...form.getInputProps("name")}
+              disabled={readOnly}
             />
             <TextInput
               label="Email"
@@ -87,6 +98,7 @@ const CustomerModal = ({ customer, modalId, onClose }: Props) => {
               withAsterisk
               placeholder="email@example.com"
               {...form.getInputProps("email")}
+              disabled={readOnly}
             />
             <Select
               label="Currency"
@@ -103,6 +115,7 @@ const CustomerModal = ({ customer, modalId, onClose }: Props) => {
               filter={({ options }) => options}
               onSearchChange={currency.setSearch}
               {...withSelectOnFocus(form.getInputProps("currency"))}
+              disabled={readOnly}
             />
 
             {/* Row 2 */}
@@ -116,6 +129,7 @@ const CustomerModal = ({ customer, modalId, onClose }: Props) => {
                   value={v.mobileCode}
                   onChange={(e) => form.setFieldValue("mobileCode", sanitizeCode(e.currentTarget.value))}
                   error={!!form.errors.mobileCode}
+                  disabled={readOnly}
                 />
                 <TextInput
                   flex={1}
@@ -125,6 +139,7 @@ const CustomerModal = ({ customer, modalId, onClose }: Props) => {
                   value={v.mobileNumber}
                   onChange={(e) => form.setFieldValue("mobileNumber", sanitizeDigits(e.currentTarget.value))}
                   error={!!form.errors.mobileNumber}
+                  disabled={readOnly}
                 />
               </Group>
             </Input.Wrapper>
@@ -133,20 +148,34 @@ const CustomerModal = ({ customer, modalId, onClose }: Props) => {
               withAsterisk
               placeholder="https://example.com"
               {...form.getInputProps("website")}
+              disabled={readOnly}
             />
           </Box>
         )}
 
         {tab === "address" && (
           <SimpleGrid cols={{ base: 1, md: 2 }}>
-            <AddressBlock form={form} name="billing" title="Billing Address" subtitle="Invoice and payment details" />
+            <AddressBlock
+              form={form}
+              name="billing"
+              title="Billing Address"
+              subtitle="Invoice and payment details"
+              readOnly={readOnly}
+            />
             <AddressBlock
               form={form}
               name="shipping"
               title="Shipping Address"
               subtitle="Delivery location"
+              readOnly={readOnly}
               mirrorOf={v.sameAsBilling ? v.billing : undefined}
-              headerRight={<Checkbox label="Same as billing" {...form.getInputProps("sameAsBilling", { type: "checkbox" })} />}
+              headerRight={
+                <Checkbox
+                  label="Same as billing"
+                  {...form.getInputProps("sameAsBilling", { type: "checkbox" })}
+                  disabled={readOnly}
+                />
+              }
             />
           </SimpleGrid>
         )}

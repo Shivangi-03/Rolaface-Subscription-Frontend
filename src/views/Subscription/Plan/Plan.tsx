@@ -153,9 +153,6 @@ const catalog = usePlanCatalog();
         searchValue={list.filters.search}
         searchPlaceholder="Search by plan name, plan code, or module..."
         onSearch={(q) => list.setFilter({ search: q })}
-        enableAdd
-        addLabel="Add Plan"
-        onAdd={openCreate}
         primaryAction={
                   <Button
             variant="default"
@@ -167,6 +164,9 @@ const catalog = usePlanCatalog();
             Export
           </Button>
         }
+        enableAdd
+        onAdd={openCreate}
+        addLabel="Add Plan"
         page={list.page}
         pageSize={list.pageSize}
         totalItems={list.total}

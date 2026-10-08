@@ -14,33 +14,44 @@ const GlobalModalHandler = () => {
 
   return (
     <>
-      {modals.map((m) =>
-        m.type === "subscription" ? (
-          <Suspense key={m.id} fallback={null}>
-            <SubscriptionFormModal
-              modalId={m.id}
-              subscription={m.isEdit ? (m.initialData as SubscriptionDetail) : null}
-              onClose={() => closeModal(m.id)}
-            />
-          </Suspense>
-                     ) : m.type === "customer" ? (
-          <Suspense key={m.id} fallback={null}>
-            <CustomerModal
-              modalId={m.id}
-              customer={m.isEdit ? (m.initialData as CustomerDetail) : null}
-              onClose={() => closeModal(m.id)}
-            />
-          </Suspense>
-        ) : m.type === "plan" ? (
-          <Suspense key={m.id} fallback={null}>
-            <PlanFormModal
-              modalId={m.id}
-              plan={m.isEdit ? (m.initialData as Plan) : null}
-              onClose={() => closeModal(m.id)}
-            />
-          </Suspense>
-        ) : null,
-      )}
+      {modals.map((m) => {
+        if (m.type === "subscription") {
+          return (
+            <Suspense key={m.id} fallback={null}>
+              <SubscriptionFormModal
+                modalId={m.id}
+                subscription={m.isEdit || m.readOnly ? (m.initialData as SubscriptionDetail) : null}
+                readOnly={m.readOnly}
+                onClose={() => closeModal(m.id)}
+              />
+            </Suspense>
+          );
+        }
+        if (m.type === "customer") {
+          return (
+            <Suspense key={m.id} fallback={null}>
+              <CustomerModal
+                modalId={m.id}
+                customer={m.isEdit || m.readOnly ? (m.initialData as CustomerDetail) : null}
+                readOnly={m.readOnly}
+                onClose={() => closeModal(m.id)}
+              />
+            </Suspense>
+          );
+        }
+        if (m.type === "plan") {
+          return (
+            <Suspense key={m.id} fallback={null}>
+              <PlanFormModal
+                modalId={m.id}
+                plan={m.isEdit ? (m.initialData as Plan) : null}
+                onClose={() => closeModal(m.id)}
+              />
+            </Suspense>
+          );
+        }
+        return null;
+      })}
     </>
   );
 };

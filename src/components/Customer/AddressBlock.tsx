@@ -10,12 +10,14 @@ interface Props {
   subtitle: string;
   mirrorOf?: AddressValues;
   headerRight?: ReactNode;
+  readOnly?: boolean;
 }
 
-const AddressBlock = ({ form, name, title, subtitle, mirrorOf, headerRight }: Props) => {
+const AddressBlock = ({ form, name, title, subtitle, mirrorOf, headerRight, readOnly = false }: Props) => {
   const field = (key: keyof AddressValues) =>
-    mirrorOf ? { value: mirrorOf[key], disabled: true, readOnly: true } : form.getInputProps(`${name}.${key}`);
-
+    mirrorOf
+      ? { value: mirrorOf[key], disabled: true, readOnly: true }
+      : { ...form.getInputProps(`${name}.${key}`), ...(readOnly ? { disabled: true, readOnly: true } : {}) };
   const country = field("country");
   const countries = useCountryOptions(country.value);
 

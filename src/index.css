@@ -3,6 +3,11 @@
   --app-primary-hover: var(--mantine-primary-color-filled-hover);
   --app-primary-light: var(--mantine-primary-color-light);
 
+  --mantine-color-disabled: var(--mantine-color-white) !important;
+  --mantine-color-disabled-color: var(--mantine-color-gray-8) !important;
+  --mantine-color-disabled-border: var(--mantine-color-gray-3) !important;
+
+
   --app-bg: var(--mantine-color-gray-0);
   --app-surface: var(--mantine-color-white);
   --app-border: var(--mantine-color-default-border);
@@ -55,4 +60,11 @@ body {
   letter-spacing: 0.04em;
   color: var(--app-table-head-fg);
   background: var(--app-table-head-bg);
+}
+
+
+
+.app-view-mode .mantine-Checkbox-label[data-disabled] {
+  color: var(--mantine-color-text);
+  cursor: default;
 }

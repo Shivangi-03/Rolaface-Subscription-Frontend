@@ -28,8 +28,8 @@ const toPlanDetail = (s: SubscriptionDetail): PlanDetail => ({
   trial_enabled: s.trial_enabled,
   trial_days: s.trial_days,
   setup_fee: s.setup_fee,
-  products: s.products.split(",").map((p) => p.trim()).filter(Boolean),
-  modules: s.modules.filter((m) => m.is_enabled).map((m) => ({ ...m, currency: s.currency })),
+  products: (s.products ?? "").split(",").map((p) => p.trim()).filter(Boolean),
+  modules: (s.modules ?? []).filter((m) => m.is_enabled).map((m) => ({ ...m, currency: s.currency })),
 });
 
 const toFormValues = (s: SubscriptionDetail): SubscriptionFormValues => ({
@@ -57,11 +57,11 @@ const validateSubscription = (v: SubscriptionFormValues, price: number) => {
 
 interface Options {
   subscription: SubscriptionDetail | null;
-
+  readOnly?: boolean;
   onClose: () => void;
 }
 
-export function useSubscriptionForm({ subscription, onClose }: Options) {
+export function useSubscriptionForm({ subscription, readOnly = false, onClose }: Options) {
   const [plan, setPlanDetail] = useState<PlanDetail | null>(() => (subscription ? toPlanDetail(subscription) : null));
   const [planLoading, setPlanLoading] = useState(false);
   const form = useForm<SubscriptionFormValues>({
@@ -73,15 +73,15 @@ export function useSubscriptionForm({ subscription, onClose }: Options) {
 
   const dirty = form.isDirty();
 
-
   useEffect(() => {
-    if (!dirty) return;
+    if (!dirty || readOnly) return;
     const handler = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", handler);
     return () => window.removeEventListener("beforeunload", handler);
-  }, [dirty]);
+  }, [dirty, readOnly]);
 
   const setPlan = async (planId: string | null) => {
+    if (readOnly) return;
     form.setFieldValue("planId", planId ?? "");
     setPlanDetail(null);
     if (!planId) return;
@@ -102,13 +102,14 @@ export function useSubscriptionForm({ subscription, onClose }: Options) {
   };
 
   const setStart = (date: string | null) => {
+    if (readOnly) return;
     form.setFieldValue("startDate", date ?? "");
     if (date && plan) form.setFieldValue("expiryDate", addPeriod(date, toFrequency(plan.billing_frequency)));
   };
 
   const requestClose = () => {
     if (saving) return;
-    if (!form.isDirty()) return onClose();
+    if (readOnly || !form.isDirty()) return onClose();
     openCommonModal({
       heading: "Discard Changes",
       subtitle: "You have unsaved changes.",
@@ -128,7 +129,7 @@ export function useSubscriptionForm({ subscription, onClose }: Options) {
   };
 
   const submit = async () => {
-    if (saving) return;
+    if (saving || readOnly) return;
     if (form.validate().hasErrors) return;
     if (subscription) {
       const v = form.values;
@@ -144,7 +145,7 @@ export function useSubscriptionForm({ subscription, onClose }: Options) {
       try {
         await updateSubscription({ id: subscription.name, ...changes });
         done(subscription.name);
-      } catch (e: any) {
+      } catch (e: unknown) {
         notifyError(e, "Failed to update subscription");
       } finally {
         setSaving(false);
@@ -164,7 +165,7 @@ export function useSubscriptionForm({ subscription, onClose }: Options) {
         ...(v.notes && { notes: v.notes }),
       });
       done(resp?.data?.name ?? "Subscription created");
-    } catch (e: any) {
+    } catch (e: unknown) {
       notifyError(e, "Failed to create subscription");
     } finally {
       setSaving(false);

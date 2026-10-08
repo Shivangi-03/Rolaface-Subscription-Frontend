@@ -1,5 +1,5 @@
 import { ActionIcon, Badge, Button, Group, Text, Tooltip } from "@mantine/core";
-import { IconBan, IconCircleCheck, IconDownload, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react";
+import { IconBan, IconCircleCheck, IconEye, IconDownload, IconEdit, IconTrash, IconUsers } from "@tabler/icons-react";
 import PageHeader from "../../components/PageHeader";
 import DataTable, { type Column } from "../../components/table";
 import { useCustomers } from "../../hooks/useCustomer";
@@ -45,6 +45,16 @@ const Customers = () => {
                 onClick={() => c.openEdit(row.id)}
               >
                 <IconEdit size={18} />
+              </ActionIcon>
+            </Tooltip>
+            <Tooltip label="View">
+              <ActionIcon
+                variant="subtle"
+                aria-label={`View ${row.name}`}
+                loading={c.busyId === row.id}
+                onClick={() => c.openView(row.id)}
+              >
+                <IconEye size={18} />
               </ActionIcon>
             </Tooltip>
             <Tooltip label={active ? "Inactive" : "Active"}>

@@ -15,16 +15,18 @@ import type { CustomerDetail, CustomerFormValues, CustomerTab } from "../types/c
 
 interface Options {
   initial?: CustomerFormValues;
-customer?: CustomerDetail | null;
+  customer?: CustomerDetail | null;
+  /** View mode: no unsaved-changes warnings, submit is blocked. */
+  readOnly?: boolean;
   onClose: () => void;
 }
 
-export function useCustomerForm({ initial, customer, onClose }: Options) {
+export function useCustomerForm({ initial, customer, readOnly = false, onClose }: Options) {
   const form = useForm<CustomerFormValues>({ initialValues: initial ?? defaultValues(), validate: validateCustomer });
   const [tab, setTab] = useState<CustomerTab>("details");
   const [saving, setSaving] = useState(false);
 
-  const dirty = form.isDirty();
+  const dirty = !readOnly && form.isDirty();
   const tabIndex = CUSTOMER_TABS.findIndex((t) => t.value === tab);
   const isLast = tabIndex === CUSTOMER_TABS.length - 1;
 
@@ -38,7 +40,7 @@ export function useCustomerForm({ initial, customer, onClose }: Options) {
 
   const requestClose = () => {
     if (saving) return;
-    if (!form.isDirty()) return onClose();
+    if (readOnly || !form.isDirty()) return onClose();
     openCommonModal({
       heading: "Discard Changes",
       subtitle: "You have unsaved changes.",
@@ -52,7 +54,7 @@ export function useCustomerForm({ initial, customer, onClose }: Options) {
   };
 
   const submit = async () => {
-    if (saving) return;
+    if (saving || readOnly) return;
     const result = form.validate();
     if (result.hasErrors) {
       const first = Object.keys(result.errors)[0];
@@ -62,23 +64,23 @@ export function useCustomerForm({ initial, customer, onClose }: Options) {
     setSaving(true);
     try {
       const v = form.values;
-if (customer) {
-await updateCustomerByCustomerCode(customer.id, buildUpdatePayload(v, customer));
-notifySuccess(`Customer ${v.name.trim()} has been updated successfully.`, "Customer Updated");
-    } else {
-const res = await createCustomer(buildCreatePayload(v));
-const newId = res?.message?.data?.customerId as string | undefined;
-notifySuccess(
-newId
-? `Customer ${v.name.trim()} (${newId}) has been created successfully.`
-: `Customer ${v.name.trim()} has been created successfully.`,
-"Customer Created",
-      );
-    }
-useDataRefreshStore.getState().triggerRefresh(REFRESH_KEYS.CUSTOMER_LIST);
-onClose();
+      if (customer) {
+        await updateCustomerByCustomerCode(customer.id, buildUpdatePayload(v, customer));
+        notifySuccess(`Customer ${v.name.trim()} has been updated successfully.`, "Customer Updated");
+      } else {
+        const res = await createCustomer(buildCreatePayload(v));
+        const newId = res?.message?.data?.customerId as string | undefined;
+        notifySuccess(
+          newId
+            ? `Customer ${v.name.trim()} (${newId}) has been created successfully.`
+            : `Customer ${v.name.trim()} has been created successfully.`,
+          "Customer Created",
+        );
+      }
+      useDataRefreshStore.getState().triggerRefresh(REFRESH_KEYS.CUSTOMER_LIST);
+      onClose();
     } catch (err) {
-notifyError(err, "Couldn't save customer"); 
+      notifyError(err, "Couldn't save customer");
     } finally {
       setSaving(false);
     }

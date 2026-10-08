@@ -1,14 +1,15 @@
 import type { ReactNode } from "react";
 import { ActionIcon, Badge, Button, Group, Menu, Text } from "@mantine/core";
-import { IconBan, IconCircleCheck, IconDotsVertical, IconDownload, IconEdit, IconStack2, IconTrash } from "@tabler/icons-react";
+import {
+  IconBan, IconCircleCheck, IconDotsVertical, IconDownload, IconEdit, IconEye, IconStack2, IconTrash,
+} from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import CancelSubscriptionModal from "../../../components/Subscription/CustomerSubscription/cancelSubscriptionModal";
 import { useSubscriptionsExport } from "../../../hooks/useSubscriptionExport";
-
 import { useSubscriptions } from "../../../hooks/useSubscriptions";
 import { formatMoney } from "../../../views/Subscription/Plan/plan.constants";
-import { COLUMNS, STATUS_OPTIONS, formatDate, statusColor } from "./subscription.constants";
+import { COLUMNS, formatDate, statusColor } from "./subscription.constants";
 import type { ApiSubscription, SubscriptionColumnKey } from "../../../types/subscription.types";
 
 const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = {
@@ -49,11 +50,15 @@ const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = 
   ),
 };
 
-const isCancelled = (s: ApiSubscription) => s.status.toLowerCase() === "cancelled";
+const isCancelled = (s: ApiSubscription) => s.status?.toLowerCase() === "cancelled";
 const isDraft = (s: ApiSubscription) => s.status?.toLowerCase() === "draft";
 
 const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
-  const { list, openCreate, openEdit, opening, submittingId, openSubmit, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel, remove, deletingId } = useSubscriptions();
+  const {
+    list, openCreate, openEdit, openView, opening, submittingId, openSubmit,
+    cancelTarget, cancelling, openCancel, closeCancel, confirmCancel, remove, deletingId,
+  } = useSubscriptions();
+
   const columns: Column<ApiSubscription>[] = [
     ...COLUMNS.map((c) => ({
       key: c.key,
@@ -62,11 +67,10 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
     })),
     {
       key: "actions",
-           header: "Actions",
-      width: 150,
+      header: "Actions",
+      width: 190,
       align: "right",
-      render: (s) =>
-      (
+      render: (s) => (
         <Group gap={4} justify="flex-end" wrap="nowrap">
           <ActionIcon
             variant="subtle"
@@ -75,8 +79,18 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
             onClick={() => openEdit(s)}
             aria-label={`Edit ${s.name}`}
           >
-                      <IconEdit size={18} />
+            <IconEdit size={18} />
           </ActionIcon>
+                    <ActionIcon
+            variant="subtle"
+            color="gray"
+            loading={opening === s.name}
+            onClick={() => openView(s)}
+            aria-label={`View ${s.name}`}
+          >
+            <IconEye size={18} />
+          </ActionIcon>
+
           <ActionIcon
             variant="subtle"
             color="red"
@@ -136,9 +150,6 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
         searchValue={list.filters.search}
         searchPlaceholder="Search by subscription no., customer, or plan..."
         onSearch={(q) => list.setFilter({ search: q })}
-        enableAdd
-        addLabel="Add Subscription"
-        onAdd={openCreate}
         primaryAction={
           <Button
             variant="default"
@@ -150,6 +161,9 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
             Export
           </Button>
         }
+        enableAdd
+        onAdd={openCreate}
+        addLabel="Add Subscription"
         page={list.page}
         pageSize={list.pageSize}
         totalItems={list.total}

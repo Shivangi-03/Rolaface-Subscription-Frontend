@@ -86,6 +86,27 @@ export function useCustomers() {
       setBusyId(null);
     }
   };
+  const openView = async (id: string) => {
+  if (busyId) return;
+  setBusyId(id);
+  try {
+    const res = await getCustomerByCustomerCode(id);
+    const detail = (res?.message?.data ?? res?.data) as CustomerDetail | undefined;
+    if (!detail) throw new Error("Customer not found");
+    openModal({
+      id: `customer-view-${id}`,
+      type: "customer",
+      title: `View ${id}`,
+      initialData: { ...detail, id: detail.id ?? id },
+      isEdit: false,
+      readOnly: true,
+    });
+  } catch (err) {
+    notifyError(err, "Couldn't load customer");
+  } finally {
+    setBusyId(null);
+  }
+};
 
   const toggleStatus = (row: CustomerSummary) => {
     const active = row.status === "Active";
@@ -159,5 +180,6 @@ export function useCustomers() {
     openEdit,
     toggleStatus,
     remove,
+    openView
   };
 }

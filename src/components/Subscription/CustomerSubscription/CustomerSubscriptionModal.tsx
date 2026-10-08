@@ -3,7 +3,7 @@ import {
   ActionIcon, LoadingOverlay, Select, SimpleGrid, Stack, Text, TextInput, Textarea, ThemeIcon,
 } from "@mantine/core";
 import { DateInput } from "@mantine/dates";
-import { IconCalendar, IconLock, IconMinus, IconUserCheck } from "@tabler/icons-react";
+import { IconCalendar, IconEye, IconLock, IconMinus, IconUserCheck } from "@tabler/icons-react";
 import SubscriptionSummary from "./CustomerSubscriptionSummary";
 import { useModalStore } from "../../../store/modalstore";
 import { useSubscriptionLookups } from "../../../hooks/useSubscriptionLooksups";
@@ -12,7 +12,6 @@ import { formatMoney } from "../../../views/Subscription/Plan/plan.constants";
 import type { PlanDetail, SubscriptionDetail } from "../../../types/subscription.types";
 
 const DATE_DISPLAY = "DD-MMM-YYYY";
-
 
 const Label = ({ label, children }: { label: string; children: React.ReactNode }) => (
   <div>
@@ -94,12 +93,14 @@ const PlanDetails = ({ plan, loading }: { plan: PlanDetail | null; loading: bool
 interface Props {
   subscription: SubscriptionDetail | null;
   modalId: string;
+  readOnly?: boolean;
   onClose: () => void;
 }
 
-const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
+const SubscriptionFormModal = ({ subscription, modalId, readOnly = false, onClose }: Props) => {
   const { form, number, saving, plan, planLoading, setPlan, setStart, submit, requestClose } = useSubscriptionForm({
     subscription,
+    readOnly,
     onClose,
   });
   const { plans, customers } = useSubscriptionLookups();
@@ -115,6 +116,9 @@ const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
   if (subscription && !customerOptions.some((o) => o.value === subscription.customer)) {
     customerOptions.push({ value: subscription.customer, label: `${subscription.customer_name} (${subscription.customer})` });
   }
+
+  const title = readOnly ? "View Subscription" : subscription ? "Edit Subscription" : "Add Subscription";
+  const subtitle = readOnly ? "Subscription details (read only)." : "Assign customer & plan.";
 
   return (
     <Modal
@@ -133,14 +137,14 @@ const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
       title={
         <Group gap="sm" wrap="nowrap" w="100%">
           <ThemeIcon size={40} variant="white" color="gray" radius="md">
-            <IconUserCheck size={22} />
+            {readOnly ? <IconEye size={22} /> : <IconUserCheck size={22} />}
           </ThemeIcon>
           <div>
             <Text fw={700} size="lg" lh={1.2}>
-              {subscription ? "Edit Subscription" : "Add Subscription"}
+              {title}
             </Text>
             <Text size="sm" opacity={0.85}>
-              Assign customer & plan.
+              {subtitle}
             </Text>
           </div>
           <ActionIcon variant="subtle" c="white" ml="auto" aria-label="Minimize" onClick={() => minimizeModal(modalId)}>
@@ -153,20 +157,19 @@ const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
         <Grid.Col span={{ base: 12, md: 8 }}>
           <ScrollArea.Autosize mah="70vh" offsetScrollbars>
             <Stack gap="sm">
-              {/* Customer · Plan · Subscription number (no card) */}
               <SimpleGrid cols={{ base: 1, sm: 3 }}>
                 <Select
                   label="Customer"
-                  required
+                  required={!readOnly}
                   searchable
                   placeholder="Select customer"
                   data={customerOptions}
-                  disabled={!!subscription}
+                  disabled={!!subscription || readOnly}
                   {...form.getInputProps("customerId")}
                 />
                 <Select
                   label="Choose Plan"
-                  required
+                  required={!readOnly}
                   searchable
                   placeholder="Select plan"
                   nothingFoundMessage="No active plans found"
@@ -174,6 +177,7 @@ const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
                   value={v.planId || null}
                   onChange={setPlan}
                   error={form.errors.planId}
+                  disabled={readOnly}
                 />
                 <TextInput label="Subscription Number" value={number || "Auto-generated"} disabled />
               </SimpleGrid>
@@ -183,37 +187,41 @@ const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
               <SimpleGrid cols={{ base: 1, sm: 3 }}>
                 <DateInput
                   label="Start Date"
-                  required
+                  required={!readOnly}
                   valueFormat={DATE_DISPLAY}
                   rightSection={<IconCalendar size={16} />}
                   value={v.startDate || null}
                   onChange={setStart}
                   error={form.errors.startDate}
+                  disabled={readOnly}
                 />
                 <DateInput
                   label="Expiry / Renewal Date"
-                  required
+                  required={!readOnly}
                   valueFormat={DATE_DISPLAY}
                   rightSection={<IconCalendar size={16} />}
                   minDate={v.startDate || undefined}
                   value={v.expiryDate || null}
                   onChange={(d) => form.setFieldValue("expiryDate", d ?? "")}
                   error={form.errors.expiryDate}
+                  disabled={readOnly}
                 />
                 <NumberInput
                   label="Discount Amount"
                   placeholder="0"
                   min={0}
                   decimalScale={2}
+                  disabled={readOnly}
                   {...form.getInputProps("discount")}
                 />
               </SimpleGrid>
               <Textarea
                 label="Description"
-                placeholder="Add any operational or commercial contract notes..."
+                placeholder={readOnly ? "No notes" : "Add any operational or commercial contract notes..."}
                 minRows={2}
                 autosize
                 maxLength={500}
+                disabled={readOnly}
                 {...form.getInputProps("notes")}
               />
             </Stack>
@@ -226,14 +234,22 @@ const SubscriptionFormModal = ({ subscription, modalId, onClose }: Props) => {
       </Grid>
 
       <Box p="md" style={{ borderTop: "1px solid var(--mantine-color-default-border)" }}>
-        <Group justify="space-between">
-          <Button variant="default" onClick={requestClose} disabled={saving}>
-            Cancel
-          </Button>
-          <Button onClick={submit} loading={saving}>
-            {subscription ? "Save Changes" : "Create Subscription"}
-          </Button>
-        </Group>
+        {readOnly ? (
+          <Group justify="flex-end">
+            <Button variant="default" onClick={onClose}>
+              Close
+            </Button>
+          </Group>
+        ) : (
+          <Group justify="space-between">
+            <Button variant="default" onClick={requestClose} disabled={saving}>
+              Cancel
+            </Button>
+            <Button onClick={submit} loading={saving}>
+              {subscription ? "Save Changes" : "Create Subscription"}
+            </Button>
+          </Group>
+        )}
       </Box>
     </Modal>
   );
