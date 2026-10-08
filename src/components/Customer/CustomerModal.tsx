@@ -129,7 +129,7 @@ const CustomerModal = ({ customer, modalId, onClose }: Props) => {
               </Group>
             </Input.Wrapper>
             <TextInput
-              label="Website"
+              label="Site Url"
               withAsterisk
               placeholder="https://example.com"
               {...form.getInputProps("website")}
