@@ -1,7 +1,7 @@
 
 import type { ReactNode } from "react";
-import { ActionIcon, Badge, Button, Checkbox, Group, Menu, Select, Text } from "@mantine/core";
-import { IconChevronDown, IconColumns3, IconDots, IconEdit, IconStack2 } from "@tabler/icons-react";
+import { ActionIcon, Badge, Button, Group, Menu, Text } from "@mantine/core";
+import { IconDots, IconEdit, IconStack2 } from "@tabler/icons-react";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import ProductBadges from "../../../components/ProductBadges";
@@ -10,6 +10,8 @@ import { usePlanCatalog } from "../../../hooks/usePlanCatalog";
 import { BILLING_LABEL, BILLING_SUFFIX, COLUMNS, PRICING_LABEL, formatMoney } from "./plan.constants";
 import type { ColumnKey, Plan, ProductDef } from "../../../types/plan.types";
 import AppAlert, { notifyInfo } from "../../../utils/Alert";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> = {
   name: (p) => (
@@ -49,10 +51,10 @@ const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> =
 };
 
 const Plans = ({ embedded = false }: { embedded?: boolean }) => {
-const { list, visible, toggleColumn, openCreate, openEdit, busyId, changeStatus, loading } = usePlans();
+const { list, openCreate, openEdit, busyId, changeStatus, loading } = usePlans();
   const catalog = usePlanCatalog(); 
   const columns: Column<Plan>[] = [
-    ...COLUMNS.filter((c) => visible.includes(c.key)).map((c) => ({
+    ...COLUMNS.map((c) => ({
       key: c.key,
       header: c.label,
       render: (p: Plan) => CELLS[c.key](p, catalog.products),
@@ -84,10 +86,41 @@ const { list, visible, toggleColumn, openCreate, openEdit, busyId, changeStatus,
     },
   ];
 
+  const handleExport = () => {
+    const rows = list.rows;
+    if (!rows.length) {
+      notifyInfo("No plans to export", "Export");
+      return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(
+      rows.map((p) => ({
+        "Plan Name": p.name,
+        "Plan Code": p.code,
+        Products: Array.isArray(p.products) ? p.products.join(", ") : "",
+        Billing: BILLING_LABEL[p.billingFrequency],
+        "Pricing Model": PRICING_LABEL[p.pricingModel],
+        Currency: p.currency,
+        Price: p.price,
+        "Trial Days": p.trialDays ?? 0,
+        Status: p.status,
+      })),
+    );
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Plans");
+
+    saveAs(
+      new Blob([XLSX.write(workbook, { bookType: "xlsx", type: "array" })], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+      "Plans.xlsx",
+    );
+  };
 
   return (
     <>
-     {!embedded && (
+      {!embedded && (
   <PageHeader
     icon={<IconStack2 size={24} />}
     title="Subscription"
@@ -113,32 +146,10 @@ const { list, visible, toggleColumn, openCreate, openEdit, busyId, changeStatus,
         enableAdd
         addLabel="Add Plan"
         onAdd={openCreate}
-        filters={
-          <>
-            <Menu closeOnItemClick={false} position="bottom-end">
-              <Menu.Target>
-                <Button variant="default" leftSection={<IconColumns3 size={16} />} rightSection={<IconChevronDown size={14} />}>
-                  Columns ({visible.length})
-                </Button>
-              </Menu.Target>
-              <Menu.Dropdown>
-                {COLUMNS.map((c) => (
-                  <Menu.Item
-                    key={c.key}
-                    onClick={() => toggleColumn(c.key)}
-                    leftSection={<Checkbox size="xs" checked={visible.includes(c.key)} readOnly tabIndex={-1} />}
-                  >
-                    {c.label}
-                  </Menu.Item>
-                ))}
-              </Menu.Dropdown>
-            </Menu>
-          </>
-        }
         primaryAction={
           <Button
             variant="default"
-            onClick={() => notifyInfo("Export will be available soon", "Export")}
+                      onClick={handleExport}
           >
             Export
           </Button>

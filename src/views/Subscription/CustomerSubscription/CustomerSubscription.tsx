@@ -1,10 +1,12 @@
 import type { ReactNode } from "react";
-import { ActionIcon, Badge, Button, Checkbox, Group, Menu, Select, Text } from "@mantine/core";
-import { IconBan, IconChevronDown, IconColumns3, IconDotsVertical, IconEdit, IconStack2 } from "@tabler/icons-react";
+import { ActionIcon, Badge, Button, Group, Menu, Text } from "@mantine/core";
+import { IconBan, IconDotsVertical, IconEdit, IconStack2 } from "@tabler/icons-react";
 import { notifyInfo } from "../../../utils/Alert";
 import PageHeader from "../../../components/PageHeader";
 import DataTable, { type Column } from "../../../components/table";
 import CancelSubscriptionModal from "../../../components/Subscription/CustomerSubscription/cancelSubscriptionModal";
+import * as XLSX from "xlsx";
+import { saveAs } from "file-saver";
 
 import { useSubscriptions } from "../../../hooks/useSubscriptions";
 import { formatMoney } from "../../../views/Subscription/Plan/plan.constants";
@@ -52,9 +54,9 @@ const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = 
 const isCancelled = (s: ApiSubscription) => s.status.toLowerCase() === "cancelled";
 
 const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
-const { list, visible, toggleColumn, openCreate, openEdit, opening, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel } = useSubscriptions();
+const { list, openCreate, openEdit, opening, cancelTarget, cancelling, openCancel, closeCancel, confirmCancel } = useSubscriptions();
   const columns: Column<ApiSubscription>[] = [
-    ...COLUMNS.filter((c) => visible.includes(c.key)).map((c) => ({
+        ...COLUMNS.map((c) => ({
       key: c.key,
       header: c.label,
       render: CELLS[c.key],
@@ -92,6 +94,40 @@ const { list, visible, toggleColumn, openCreate, openEdit, opening, cancelTarget
     },
   ];
 
+  const handleExport = () => {
+    const rows = list.rows;
+    if (!rows.length) {
+      notifyInfo("No subscriptions to export", "Export");
+      return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(
+      rows.map((s) => ({
+        "Subscription No": s.name,
+        Customer: s.customer_name,
+        "Customer ID": s.customer,
+        Plan: s.plan_name,
+        Billing: s.billing_frequency,
+        "Renewal Mode": s.renewal_mode,
+        "Period Start": formatDate(s.current_period_start),
+        "Period End": formatDate(s.current_period_end),
+        Currency: s.currency,
+        Total: s.grand_total,
+        Status: s.status,
+      })),
+    );
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Subscriptions");
+
+    saveAs(
+      new Blob([XLSX.write(workbook, { bookType: "xlsx", type: "array" })], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      }),
+      "Subscriptions.xlsx",
+    );
+  };
+
   return (
     <>
        {!embedded && (
@@ -114,33 +150,10 @@ const { list, visible, toggleColumn, openCreate, openEdit, opening, cancelTarget
         enableAdd
         addLabel="Add Subscription"
         onAdd={openCreate}
-        filters={
-          <>
-            <Menu closeOnItemClick={false} position="bottom-end">
-              <Menu.Target>
-                <Button variant="default" leftSection={<IconColumns3 size={16} />} rightSection={<IconChevronDown size={14} />}>
-                  Columns ({visible.length})
-                </Button>
-              </Menu.Target>
-              <Menu.Dropdown>
-                {COLUMNS.map((c) => (
-                  <Menu.Item
-                    key={c.key}
-                    onClick={() => toggleColumn(c.key)}
-                    leftSection={<Checkbox size="xs" checked={visible.includes(c.key)} readOnly tabIndex={-1} />}
-                  >
-                    {c.label}
-                  </Menu.Item>
-                ))}
-              </Menu.Dropdown>
-            </Menu>
-            <Button
-              variant="default"
-              onClick={() => notifyInfo("Export will be available soon", "Export")}
-            >
-              Export
-            </Button>
-          </>
+            primaryAction={
+          <Button variant="default" onClick={handleExport}>
+            Export
+          </Button>
         }
         page={list.page}
         pageSize={list.pageSize}
