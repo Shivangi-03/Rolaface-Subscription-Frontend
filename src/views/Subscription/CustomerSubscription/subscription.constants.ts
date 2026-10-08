@@ -33,7 +33,7 @@ export const COLUMNS: { key: SubscriptionColumnKey; label: string }[] = [
   { key: "customer", label: "Customer" },
   { key: "plan", label: "Plan" },
   { key: "period", label: "Contract Period" },
-  { key: "total", label: "Total (incl. GST)" },
+  { key: "total", label: "Total Amount" },
   { key: "status", label: "Status" },
 ];
 
