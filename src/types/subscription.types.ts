@@ -1,4 +1,11 @@
-export type SubscriptionStatus = "active" | "trial" | "expired" | "cancelled";
+export type SubscriptionStatus =
+  | "draft"
+  | "scheduled"
+  | "trialing"
+  | "trial"
+  | "active"
+  | "expired"
+  | "cancelled";
 export type SubscriptionColumnKey = "number" | "customer" | "plan" | "period" | "total" | "status";
 
 export interface Customer {
@@ -10,9 +17,9 @@ export interface Customer {
 export interface SubscriptionFormValues {
   customerId: string;
   planId: string;
-  startDate: string; 
-  expiryDate: string; 
-  discount: number | string; 
+  startDate: string;
+  expiryDate: string;
+  discount: number | string;
   notes: string;
 }
 
@@ -20,8 +27,8 @@ export interface Subscription {
   id: string;
   number: string;
   status: SubscriptionStatus;
-  total: number; 
-  values: SubscriptionFormValues; 
+  total: number;
+  values: SubscriptionFormValues;
 }
 
 export interface ApiSubscription {
@@ -63,7 +70,7 @@ export interface SubscriptionPayload {
   customer: string;
   plan: string;
   start_date: string;
-  end_date: string; 
+  end_date: string;
   billing_frequency: string;
   discount_amount: number;
   notes?: string;
@@ -127,4 +134,6 @@ export interface SubscriptionCancelPayload {
   id: string;
   reason: string;
   immediate: boolean;
+  /** row `modified` the user saw; the server rejects the cancel (409) if it changed since */
+  modified?: string;
 }

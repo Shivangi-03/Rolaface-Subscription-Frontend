@@ -12,20 +12,28 @@ import type {
 export const GST_RATE = 0.18;
 export const DATE_FORMAT = "YYYY-MM-DD";
 
+// keys = lower-cased status coming from the backend (Draft, Scheduled, Trialing, Active, Expired, Cancelled)
 export const STATUS_COLOR: Record<SubscriptionStatus, string> = {
-  active: "green",
+  draft: "gray",
+  scheduled: "violet",
+  trialing: "blue",
   trial: "blue",
+  active: "green",
   expired: "orange",
   cancelled: "red",
 };
 export const statusColor = (s: string) =>
-  STATUS_COLOR[s.toLowerCase() as SubscriptionStatus] ?? "gray";
+  STATUS_COLOR[s?.toLowerCase() as SubscriptionStatus] ?? "gray";
+
+// values must match the backend exactly (case sensitive): Draft, Scheduled, Trialing, Active, Expired, Cancelled
 export const STATUS_OPTIONS = [
   { value: "all", label: "All Status" },
-  { value: "active", label: "Active" },
-  { value: "trial", label: "Trial" },
-  { value: "expired", label: "Expired" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "Draft", label: "Draft" },
+  { value: "Scheduled", label: "Scheduled" },
+  { value: "Trialing", label: "Trialing" },
+  { value: "Active", label: "Active" },
+  { value: "Expired", label: "Expired" },
+  { value: "Cancelled", label: "Cancelled" },
 ];
 
 export const COLUMNS: { key: SubscriptionColumnKey; label: string }[] = [

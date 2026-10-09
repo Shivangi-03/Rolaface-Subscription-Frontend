@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Badge, Box, Divider, Group, Paper, Stack, Text } from "@mantine/core";
 import ProductBadges from "../../ProductBadges";
-import { BILLING_SUFFIX, PRICING_LABEL, calcRate, formatMoney, generateCode, num } from "../../../views/Subscription/Plan/plan.constants";
+import { BILLING_SUFFIX, PRICING_LABEL, calcRate, formatMoney, num } from "../../../views/Subscription/Plan/plan.constants";
 import type { ModuleDef, PlanFormValues, ProductDef } from "../../../types/plan.types";
 
 const Row = ({ label, value }: { label: string; value: string }) => (
@@ -23,7 +23,6 @@ interface Props {
 }
 
 const PlanSummary = ({ values: v, catalog = EMPTY_CATALOG }: Props) => {
-  const code = v.code.trim() || generateCode(v.products);
   const rate = calcRate(v);
 
   const counts = useMemo(() => {

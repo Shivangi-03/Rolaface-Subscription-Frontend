@@ -21,7 +21,6 @@ interface PlanModule {
 
 interface PlanDetail {
   name: string;
-  plan_code: string;
   plan_name: string;
   description?: string;
   products: string[];
@@ -189,9 +188,6 @@ const PlanDetailView = ({ planId, onBack, onEdit }: Props) => {
             <Box>
               <Group gap="xs" mb={2}>
                 <Text fw={700} size="md">{plan.plan_name}</Text>
-                <Badge variant="outline" color="gray" radius="sm" size="sm">
-                  {plan.plan_code}
-                </Badge>
                 <Badge variant="light" color={isActive ? "green" : "gray"} size="sm">
                   {plan.status}
                 </Badge>
@@ -232,7 +228,6 @@ const PlanDetailView = ({ planId, onBack, onEdit }: Props) => {
             <SectionTitle icon={<IconFileText size={15} color="var(--mantine-color-blue-6)" />} title="Plan Details" />
             <DataRow label="Plan Name" value={plan.plan_name} />
             <DataRow label="Description" value={plan.description || "—"} />
-            <DataRow label="Plan Code" value={plan.plan_code} mono />
             <DataRow label="Currency" value={plan.currency} />
             <DataRow label="Status" value={plan.status} />
           </Paper>

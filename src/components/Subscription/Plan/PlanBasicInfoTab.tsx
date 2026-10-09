@@ -17,7 +17,7 @@ const BasicInfoTab = ({ form, catalog }: Props) => {
 
   const fieldColumns = useMatches({
     base: "minmax(0, 1fr)",
-    sm: "minmax(0, 2fr) minmax(0, 1fr) 130px",
+    sm: "minmax(0, 2fr) minmax(0, 1fr)",
   });
 
   return (
@@ -67,7 +67,6 @@ const BasicInfoTab = ({ form, catalog }: Props) => {
           maxLength={100}
           {...form.getInputProps("name")}
         />
-        <TextInput label="Plan Code" placeholder="Auto-generated" maxLength={40} disabled {...form.getInputProps("code")} />
         <NumberInput label="User Limit" placeholder="e.g. 25" min={1} allowDecimal={false} {...form.getInputProps("userLimit")} />
       </Box>
 

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button, Checkbox, Group, Modal, Stack, Text, Textarea } from "@mantine/core";
 import type { ApiSubscription } from "../../../types/subscription.types";
+import { formatDate } from "../../../views/Subscription/CustomerSubscription/subscription.constants";
 
 interface Props {
   subscription: ApiSubscription;
@@ -11,10 +12,24 @@ interface Props {
 
 const CancelSubscriptionModal = ({ subscription, loading, onConfirm, onClose }: Props) => {
   const [reason, setReason] = useState("");
-  const [immediate, setImmediate] = useState(false);
+  const [immediateChecked, setImmediateChecked] = useState(false);
   const [error, setError] = useState("");
 
+  const status = subscription.status?.toLowerCase();
+
+  // Backend allows "cancel at period end" only for an Active subscription with no cancellation scheduled yet.
+  // Trialing / Scheduled, or an already scheduled cancellation -> only "cancel immediately" is possible.
+  const onlyImmediate = status === "trialing" || status === "scheduled" || !!subscription.cancel_scheduled;
+  const immediate = onlyImmediate || immediateChecked;
+
+  const hint = subscription.cancel_scheduled
+    ? `Cancellation is already scheduled for ${formatDate(subscription.cancelled_on ?? "")}. You can only cancel immediately now.`
+    : onlyImmediate
+      ? "Trial / scheduled subscriptions can only be cancelled immediately."
+      : "Unchecked: the subscription stays active until the end of the current period.";
+
   const submit = () => {
+    if (loading) return;
     if (!reason.trim()) return setError("Reason is required");
     onConfirm(reason.trim(), immediate);
   };
@@ -40,9 +55,10 @@ const CancelSubscriptionModal = ({ subscription, loading, onConfirm, onClose }: 
         />
         <Checkbox
           label="Cancel immediately"
-          description="Unchecked: the subscription stays active until the end of the current period."
+          description={hint}
           checked={immediate}
-          onChange={(e) => setImmediate(e.currentTarget.checked)}
+          disabled={onlyImmediate || loading}
+          onChange={(e) => setImmediateChecked(e.currentTarget.checked)}
         />
         <Group justify="flex-end">
           <Button variant="default" onClick={onClose} disabled={loading}>

@@ -59,10 +59,8 @@ export function usePlanForm({ initial, onClose, isEdit = false, planId }: Option
   };
 
 const submit = async () => {
-console.log("1 submit clicked");
 if (saving) return;
 const result = form.validate();
-console.log("2 validation errors", result.errors);
     if (result.hasErrors) {
       const first = Object.keys(result.errors)[0];
       if (first) setTab(TAB_OF_FIELD(first));

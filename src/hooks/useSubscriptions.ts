@@ -9,14 +9,14 @@ import {
 } from "../api/Subscription/subscriptionApi";
 import { useModalStore } from "../store/modalstore";
 import { REFRESH_KEYS, useDataRefreshStore } from "../store/datarefreshstore";
-import { COLUMNS } from "../views/Subscription/CustomerSubscription/subscription.constants";
+import { COLUMNS, formatDate } from "../views/Subscription/CustomerSubscription/subscription.constants";
 import type {
   ApiSubscription,
   SubscriptionColumnKey,
 } from "../types/subscription.types";
 import { deletedoc } from "../api/utils/frappeApi";
 
-
+const CANCELLABLE = ["scheduled", "trialing", "active"];
 
 export function useSubscriptions() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -31,6 +31,7 @@ export function useSubscriptions() {
   const openModal = useModalStore((s) => s.openModal);
   const [submittingId, setSubmittingId] = useState<string | null>(null);
   const submitLock = useRef(false);
+  const cancelLock = useRef(false);
   const [debouncedSearch] = useDebouncedValue(filters.search, 400);
   const [opening, setOpening] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<ApiSubscription | null>(null);
@@ -78,21 +79,42 @@ export function useSubscriptions() {
   };
 
   const confirmCancel = async (reason: string, immediate: boolean) => {
-    if (!cancelTarget) return;
+    if (!cancelTarget || cancelLock.current) return; // block double clicks
+    cancelLock.current = true;
     setCancelling(true);
+    const target = cancelTarget;
     try {
-      await cancelSubscription({ id: cancelTarget.name, reason, immediate });
+      // `modified` makes the server reject the cancel if the row changed since the list was loaded.
+      const res = await cancelSubscription({ id: target.name, reason, immediate, modified: target.modified });
+
+      // The popup follows what the server really did (status in the response), not what we asked for.
+      const sub = res?.data;
+      const cancelledNow = sub ? String(sub.status ?? "").toLowerCase() === "cancelled" : immediate;
       notifySuccess(
-        immediate
-          ? `Subscription ${cancelTarget.name} has been cancelled.`
-          : `Cancellation for subscription ${cancelTarget.name} has been scheduled.`,
-        immediate ? "Subscription Cancelled" : "Cancellation Scheduled"
+        cancelledNow
+          ? `Subscription ${target.name} has been cancelled.`
+          : `Subscription ${target.name} will be cancelled on ${formatDate(sub?.cancelled_on ?? "")}.`,
+        cancelledNow ? "Subscription Cancelled" : "Cancellation Scheduled",
       );
       setCancelTarget(null);
-      triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST);
     } catch (e: any) {
       notifyError(e, "Failed to cancel subscription");
+      // Our row may be outdated (409: already scheduled / stale / already ended). Reload just this
+      // subscription so the modal hint is correct, and keep the typed reason. Close it if it can't be cancelled any more.
+      try {
+        const fresh = await getSubscriptionById(target.name);
+        const freshStatus = String(fresh?.data?.status ?? "").toLowerCase();
+        if (CANCELLABLE.includes(freshStatus)) {
+          setCancelTarget((cur) => (cur && cur.name === target.name ? { ...cur, ...fresh.data } : cur));
+        } else {
+          setCancelTarget(null);
+        }
+      } catch {
+        /* keep the modal as it is */
+      }
     } finally {
+      triggerRefresh(REFRESH_KEYS.SUBSCRIPTION_LIST); // refresh on success AND failure
+      cancelLock.current = false;
       setCancelling(false);
     }
   };
@@ -129,24 +151,23 @@ export function useSubscriptions() {
   };
 
   const openView = async (s: ApiSubscription) => {
-  if (opening) return;
-  setOpening(s.name);
-  try {
-    const res = await getSubscriptionById(s.name); 
-    useModalStore.getState().openModal({
-      type: "subscription",
-      id: `subscription-view-${s.name}`,
-      title: "View Subscription",
-      initialData: res.data,
-      readOnly: true,
-    });
-  } catch (err) {
-    notifyError(err, "Failed to load subscription");
-  } finally {
-    setOpening(null);
-  }
-};
-
+    if (opening) return;
+    setOpening(s.name);
+    try {
+      const res = await getSubscriptionById(s.name);
+      useModalStore.getState().openModal({
+        type: "subscription",
+        id: `subscription-view-${s.name}`,
+        title: "View Subscription",
+        initialData: res.data,
+        readOnly: true,
+      });
+    } catch (err) {
+      notifyError(err, "Failed to load subscription");
+    } finally {
+      setOpening(null);
+    }
+  };
 
   const toggleColumn = (key: SubscriptionColumnKey) =>
     setVisible((v) => (v.includes(key) ? v.filter((k) => k !== key) : [...v, key]));
@@ -212,6 +233,5 @@ export function useSubscriptions() {
         setOpening(null);
       }
     },
-
   };
 }

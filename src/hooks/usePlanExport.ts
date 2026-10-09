@@ -5,7 +5,6 @@ import { notifyError, notifySuccess } from "../utils/Alert";
 type ApiPlan = {
   name: string;
   plan_name: string;
-  plan_code: string;
   status: string;
   products: string[];
   pricing_model: string;
@@ -19,7 +18,6 @@ const MAX_PAGES = 500; // safety cap against runaway loops
 
 const EXPORT_COLUMNS: { header: string; key: string; width: number; value: (r: ApiPlan) => string | number }[] = [
   { header: "Plan Name", key: "plan_name", width: 30, value: (r) => r.plan_name ?? "" },
-  { header: "Plan Code", key: "plan_code", width: 20, value: (r) => r.plan_code ?? "" },
   { header: "Products", key: "products", width: 24, value: (r) => (r.products ?? []).join(", ") },
   { header: "Billing", key: "billing_frequency", width: 16, value: (r) => r.billing_frequency ?? "" },
   { header: "Pricing Model", key: "pricing_model", width: 18, value: (r) => r.pricing_model ?? "" },

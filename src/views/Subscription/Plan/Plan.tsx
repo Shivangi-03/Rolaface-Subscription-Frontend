@@ -7,30 +7,20 @@ import DataTable, { type Column } from "../../../components/table";
 import ProductBadges from "../../../components/ProductBadges";
 import { usePlans } from "../../../hooks/usePlans";
 import { usePlanCatalog } from "../../../hooks/usePlanCatalog";
-import { BILLING_LABEL, BILLING_SUFFIX, COLUMNS, PRICING_LABEL, formatMoney } from "./plan.constants";
-import type { ColumnKey, Plan, ProductDef } from "../../../types/plan.types";
+import { BILLING_SUFFIX, COLUMNS, formatMoney } from "./plan.constants";import type { ColumnKey, Plan, ProductDef } from "../../../types/plan.types";
 import AppAlert from "../../../utils/Alert";
 import { usePlansExport } from "../../../hooks/usePlanExport";
 import PlanDetailView from "./planDetailVIew";
 
 const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> = {
-  name: (p) => (
-    <>
-      <Text fw={600}>{p.name}</Text>
-      <Text size="xs" c="dimmed" ff="monospace">
-        #{p.code}
-      </Text>
-    </>
+  id: (p) => (
+    <Text size="sm" ff="monospace">
+      {p.id}
+    </Text>
   ),
+  name: (p) => <Text fw={600}>{p.name}</Text>,
   product: (p, products) => <ProductBadges products={p.products} catalog={products} />,
-  billing: (p) => (
-    <>
-      <Text size="sm">{BILLING_LABEL[p.billingFrequency]}</Text>
-      <Text size="xs" c="dimmed">
-        {PRICING_LABEL[p.pricingModel]}
-      </Text>
-    </>
-  ),
+  currency: (p) => <Text size="sm">{p.currency || "—"}</Text>,
   price: (p) => (
     <Text fw={700}>
       {formatMoney(p.price, p.currency)}{" "}
@@ -41,13 +31,13 @@ const CELLS: Record<ColumnKey, (p: Plan, products: ProductDef[]) => ReactNode> =
   ),
   trial: (p) => <Text size="sm">{p.trialDays ? `${p.trialDays} Days` : "None"}</Text>,
   status: (p) => (
-  <Badge
-    variant="light"
-    color={p.status === "active" ? "green" : p.status === "inactive" ? "gray" : "yellow"}
-  >
-    {p.status}
-  </Badge>
-),
+    <Badge
+      variant="light"
+      color={p.status === "active" ? "green" : p.status === "inactive" ? "gray" : "yellow"}
+    >
+      {p.status}
+    </Badge>
+  ),
 };
 
 const isDraft = (p: Plan) => p.status?.toLowerCase() === "draft";
@@ -151,7 +141,7 @@ const catalog = usePlanCatalog();
         minWidth={900}
         emptyMessage="No plans found"
         searchValue={list.filters.search}
-        searchPlaceholder="Search by plan name, plan code, or module..."
+        searchPlaceholder="Search by plan name or module..."
         onSearch={(q) => list.setFilter({ search: q })}
         primaryAction={
                   <Button

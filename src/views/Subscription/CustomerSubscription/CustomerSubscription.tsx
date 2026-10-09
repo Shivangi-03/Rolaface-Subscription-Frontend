@@ -43,15 +43,25 @@ const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = 
     </>
   ),
   total: (s) => <Text fw={700}>{formatMoney(s.grand_total, s.currency)}</Text>,
+  // Badge comes ONLY from `status`. A scheduled cancellation (status still Active) shows a "Cancels on" hint.
   status: (s) => (
-    <Badge variant="light" color={statusColor(s.status)} tt="capitalize">
-      {s.status}
-    </Badge>
+    <>
+      <Badge variant="light" color={statusColor(s.status)} tt="capitalize">
+        {s.status}
+      </Badge>
+      {s.cancel_scheduled && s.cancelled_on && (
+        <Text size="xs" c="orange" mt={4}>
+          Cancels on {formatDate(s.cancelled_on)}
+        </Text>
+      )}
+    </>
   ),
 };
 
 const isCancelled = (s: ApiSubscription) => s.status?.toLowerCase() === "cancelled";
 const isDraft = (s: ApiSubscription) => s.status?.toLowerCase() === "draft";
+// only live subscriptions can be cancelled (Expired / Cancelled / Draft cannot)
+const isCancellable = (s: ApiSubscription) => ["scheduled", "trialing", "active"].includes(s.status?.toLowerCase());
 
 const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
   const {
@@ -81,7 +91,7 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
           >
             <IconEdit size={18} />
           </ActionIcon>
-                    <ActionIcon
+          <ActionIcon
             variant="subtle"
             color="gray"
             loading={opening === s.name}
@@ -106,7 +116,7 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
               <ActionIcon
                 variant="subtle"
                 loading={submittingId === s.name}
-                disabled={isCancelled(s)}
+                disabled={!(isDraft(s) || isCancellable(s))}
                 aria-label={`More actions for ${s.name}`}
               >
                 <IconDotsVertical size={18} />

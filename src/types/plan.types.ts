@@ -7,8 +7,7 @@ export type BillingFrequency = "monthly" | "quarterly" | "half_yearly" | "yearly
 export type PricingModel = "flat" | "per_module";
 export type RenewalMode = "auto" | "fixed";
 export type PlanTab = "basic" | "modules" | "pricing" | "trial";
-export type ColumnKey = "name" | "product" | "billing" | "price" | "trial" | "status";
-
+export type ColumnKey = "id" | "name" | "product" | "currency" | "price" | "trial" | "status";
 export type NumInput = number | string; 
 
 export interface ProductDef {
@@ -21,14 +20,12 @@ export interface ProductDef {
 export interface ModuleDef {
   id: string; 
   product: ProductCode; 
-  code: string; 
   name: string; 
 }
 
 export interface SubModuleDef {
   id: string; 
   moduleId: string; 
-  code: string; 
   name: string;
 }
 
@@ -47,7 +44,6 @@ export interface PlanCatalog {
 export interface PlanFormValues {
   products: ProductCode[];
   name: string;
-  code: string;
   userLimit: NumInput;
   description: string;
   status: PlanStatus;
@@ -69,7 +65,6 @@ export type PlanForm = UseFormReturnType<PlanFormValues>;
 export interface Plan {
   id: string;
   name: string;
-  code: string;
   products: ProductCode[];
   billingFrequency: BillingFrequency;
   pricingModel: PricingModel;
@@ -82,7 +77,6 @@ export interface Plan {
 
 export interface PlanPayload {
   plan_name: string;
-  plan_code: string;
   currency: string;
   pricing_model: string;
   billing_frequency: string;
@@ -100,7 +94,6 @@ export interface PlanPayload {
 export interface PlanListItem {
   name: string;
   plan_name: string;
-  plan_code: string;
   status: string;
   products: string[];
   pricing_model: string;

@@ -3,19 +3,15 @@ import type {
   ColumnKey,
   NumInput,
   Plan,
-    PlanFormValues,
+  PlanFormValues,
   PlanDetail,
   PlanListItem,
   PlanPayload,
   PlanTab,
   PlanUpdatePayload,
   PricingModel,
-  ProductCode,
   RenewalMode,
 } from "../../../types/plan.types";
-
-
-
 
 export const BILLING_OPTIONS: { value: BillingFrequency; label: string }[] = [
   { value: "monthly", label: "Monthly" },
@@ -49,9 +45,10 @@ export const TAB_OF_FIELD = (field: string): PlanTab => {
 };
 
 export const COLUMNS: { key: ColumnKey; label: string }[] = [
+  { key: "id", label: "Plan ID" },
   { key: "name", label: "Plan Name" },
   { key: "product", label: "Product" },
-  { key: "billing", label: "Billing" },
+  { key: "currency", label: "Currency" },
   { key: "price", label: "Price" },
   { key: "trial", label: "Trial" },
   { key: "status", label: "Status" },
@@ -60,7 +57,6 @@ export const COLUMNS: { key: ColumnKey; label: string }[] = [
 export const DEFAULT_VALUES: PlanFormValues = {
   products: [],
   name: "",
-  code: "",
   userLimit: "",
   description: "",
   status: "draft",
@@ -80,10 +76,9 @@ export const DEFAULT_VALUES: PlanFormValues = {
 export const num = (v: NumInput) => (typeof v === "number" ? v : Number(v) || 0);
 
 export const calcRate = (v: PlanFormValues) =>
-  v.pricingModel === "flat" ? num(v.basePrice) : v.modules.reduce((sum, id) => sum + num(v.modulePrices[id] ?? 0), 0);
-
-export const generateCode = (products: ProductCode[]) =>
-  products.length ? `${products.join("-")}-${new Date().getFullYear()}` : "";
+  v.pricingModel === "flat"
+    ? num(v.basePrice)
+    : v.modules.reduce((sum, id) => sum + num(v.modulePrices[id] ?? 0), 0);
 
 export const formatMoney = (amount: number, currency?: string) => {
   if (!currency) return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(amount);
@@ -97,7 +92,6 @@ export const formatMoney = (amount: number, currency?: string) => {
 export const toPlan = (id: string, values: PlanFormValues): Plan => ({
   id,
   name: values.name.trim(),
-  code: values.code.trim() || generateCode(values.products),
   products: values.products,
   billingFrequency: values.billingFrequency,
   pricingModel: values.pricingModel,
@@ -107,6 +101,7 @@ export const toPlan = (id: string, values: PlanFormValues): Plan => ({
   status: values.status,
   values,
 });
+
 const BILLING_API: Record<BillingFrequency, string> = {
   monthly: "Monthly",
   quarterly: "Quarterly",
@@ -126,29 +121,30 @@ const RENEWAL_API: Record<RenewalMode, string> = {
 
 export const buildPlanPayload = (v: PlanFormValues): PlanPayload => ({
   plan_name: v.name.trim(),
-  plan_code: v.code.trim() || generateCode(v.products),
   currency: v.currency,
   pricing_model: PRICING_API[v.pricingModel],
   billing_frequency: BILLING_API[v.billingFrequency],
-    modules: v.modules.map((m) =>
+  modules: v.modules.map((m) =>
     v.pricingModel === "per_module"
       ? { module: m, price: num(v.modulePrices[m] ?? 0) }
       : { module: m },
   ),
   user_limit: num(v.userLimit),
   description: v.description.trim(),
-      ...(v.pricingModel === "flat" && { base_price: num(v.basePrice) }),
+  ...(v.pricingModel === "flat" && { base_price: num(v.basePrice) }),
   setup_fee: num(v.setupFee),
   trial_enabled: v.freeTrial,
   trial_days: v.freeTrial ? num(v.trialDays) : 0,
   renewal_mode: RENEWAL_API[v.renewalMode],
   billing_cycles: v.renewalMode === "fixed" ? num(v.cycles) : 0,
 });
+
 const invert = <T extends string>(m: Record<T, string>) =>
   Object.fromEntries(Object.entries(m).map(([k, v]) => [v, k])) as Record<string, T>;
 
 const BILLING_FROM_API = invert(BILLING_API);
 const PRICING_FROM_API = invert(PRICING_API);
+const RENEWAL_FROM_API = invert(RENEWAL_API);
 
 const toPlanStatus = (s?: string): Plan["status"] => {
   const v = s?.toLowerCase();
@@ -162,17 +158,14 @@ export const fromListItem = (r: PlanListItem): Plan => {
     ...DEFAULT_VALUES,
     products: r.products ?? [],
     name: r.plan_name,
-    code: r.plan_code,
     status: toPlanStatus(r.status),
     billingFrequency: BILLING_FROM_API[r.billing_frequency] ?? "monthly",
     pricingModel: PRICING_FROM_API[r.pricing_model] ?? "flat",
     currency: r.currency,
     basePrice: r.base_price,
   };
-  return { ...toPlan(r.name, values), name: r.plan_name, code: r.plan_code };
+  return { ...toPlan(r.name, values), name: r.plan_name };
 };
-
-const RENEWAL_FROM_API = invert(RENEWAL_API);
 
 export const fromPlanDetail = (r: PlanDetail, fallbackProducts: string[] = []): Plan => {
   const mods = r.modules ?? [];
@@ -180,7 +173,6 @@ export const fromPlanDetail = (r: PlanDetail, fallbackProducts: string[] = []): 
     ...DEFAULT_VALUES,
     products: r.products?.length ? r.products : fallbackProducts,
     name: r.plan_name,
-    code: r.plan_code,
     userLimit: r.user_limit || "",
     description: r.description ?? "",
     status: r.status?.toLowerCase() === "active" ? "active" : "draft",
@@ -196,7 +188,7 @@ export const fromPlanDetail = (r: PlanDetail, fallbackProducts: string[] = []): 
     renewalMode: RENEWAL_FROM_API[r.renewal_mode ?? ""] ?? "auto",
     cycles: r.billing_cycles || "",
   };
-  return { ...toPlan(r.name, values), name: r.plan_name, code: r.plan_code };
+  return { ...toPlan(r.name, values), name: r.plan_name };
 };
 
 export const buildPlanUpdatePayload = (
@@ -209,7 +201,6 @@ export const buildPlanUpdatePayload = (
   const pricingChanged = v.pricingModel !== init.pricingModel;
 
   if (v.name.trim() !== init.name.trim()) p.plan_name = v.name.trim();
-  if (v.code.trim() !== init.code.trim()) p.plan_code = v.code.trim();
   if (v.currency !== init.currency) p.currency = v.currency;
   if (pricingChanged) p.pricing_model = PRICING_API[v.pricingModel];
   if (v.billingFrequency !== init.billingFrequency) p.billing_frequency = BILLING_API[v.billingFrequency];
@@ -222,8 +213,7 @@ export const buildPlanUpdatePayload = (
   if (v.renewalMode !== init.renewalMode) p.renewal_mode = RENEWAL_API[v.renewalMode];
   if (num(v.cycles) !== num(init.cycles)) p.billing_cycles = v.renewalMode === "fixed" ? num(v.cycles) : 0;
 
-  const sameModules =
-    [...v.modules].sort().join("|") === [...init.modules].sort().join("|");
+  const sameModules = [...v.modules].sort().join("|") === [...init.modules].sort().join("|");
   const pricesChanged =
     perModule && v.modules.some((m) => num(v.modulePrices[m] ?? 0) !== num(init.modulePrices[m] ?? 0));
   if (!sameModules || pricesChanged || pricingChanged) {
