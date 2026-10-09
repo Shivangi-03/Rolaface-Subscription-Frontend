@@ -105,7 +105,6 @@ const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {
             variant="subtle"
             color="red"
             loading={deletingId === s.name}
-            disabled={!(isDraft(s) || isCancelled(s))}
             onClick={() => remove(s)}
             aria-label={`Delete ${s.name}`}
           >
