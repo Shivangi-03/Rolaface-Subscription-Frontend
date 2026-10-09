@@ -47,7 +47,7 @@ export interface ApiSubscription {
   billing_cycles: number;
   start_date: string;
   trial_end_date: string | null;
-  end_date: string | null;
+  end_date: string;
   cancelled_on: string | null;
   creation: string;
   modified: string;

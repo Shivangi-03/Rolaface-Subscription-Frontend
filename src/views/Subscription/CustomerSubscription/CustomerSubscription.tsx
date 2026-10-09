@@ -29,21 +29,18 @@ const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = 
   plan: (s) => (
     <>
       <Text size="sm">{s.plan_name}</Text>
-      <Text size="xs" c="dimmed">
-        {s.billing_frequency} · {s.renewal_mode}
-      </Text>
     </>
   ),
   period: (s) => (
     <>
-      <Text size="sm">{formatDate(s.current_period_start)}</Text>
+      <Text size="sm">{formatDate(s.start_date)}</Text>
       <Text size="xs" c="dimmed">
-        to {formatDate(s.current_period_end)}
+        to {formatDate(s.end_date)}
       </Text>
     </>
   ),
   total: (s) => <Text fw={700}>{formatMoney(s.grand_total, s.currency)}</Text>,
-  // Badge comes ONLY from `status`. A scheduled cancellation (status still Active) shows a "Cancels on" hint.
+
   status: (s) => (
     <>
       <Badge variant="light" color={statusColor(s.status)} tt="capitalize">
@@ -60,7 +57,6 @@ const CELLS: Record<SubscriptionColumnKey, (s: ApiSubscription) => ReactNode> = 
 
 const isCancelled = (s: ApiSubscription) => s.status?.toLowerCase() === "cancelled";
 const isDraft = (s: ApiSubscription) => s.status?.toLowerCase() === "draft";
-// only live subscriptions can be cancelled (Expired / Cancelled / Draft cannot)
 const isCancellable = (s: ApiSubscription) => ["scheduled", "trialing", "active"].includes(s.status?.toLowerCase());
 
 const Subscriptions = ({ embedded = false }: { embedded?: boolean }) => {

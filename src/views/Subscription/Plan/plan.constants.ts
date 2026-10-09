@@ -50,7 +50,6 @@ export const COLUMNS: { key: ColumnKey; label: string }[] = [
   { key: "product", label: "Product" },
   { key: "currency", label: "Currency" },
   { key: "price", label: "Price" },
-  { key: "trial", label: "Trial" },
   { key: "status", label: "Status" },
 ];
 
